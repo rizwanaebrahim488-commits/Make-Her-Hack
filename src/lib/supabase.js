@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import { INITIAL_RESOURCES } from '../data/initialResources'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://txxgrkcqqrkfxksfyddt.supabase.co'
+
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'sb_publishable_IikmmKT9LO5Uo56YzyaTGw_TWPTL3h0'
 
 // Check if valid URL is present
 const isValidSupabaseConfig = Boolean(
