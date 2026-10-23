@@ -9,6 +9,7 @@ const RESOURCE_TYPES = [
   { id: 'all', label: 'All Resources', icon: '🌐' },
   { id: 'items', label: 'Items', icon: '🪑' },
   { id: 'services', label: 'Services', icon: '🛠' },
+  { id: 'requests', label: 'Requests', icon: '📢' },
   { id: 'disposal', label: 'Disposal & Recycling', icon: '♻️' },
   { id: 'plants', label: 'Plants & Seeds', icon: '🌱' },
   { id: 'others', label: 'Others', icon: '📦' },
@@ -18,6 +19,7 @@ const RESOURCE_TYPES = [
 const SUB_CATEGORIES = {
   items: ['All', 'Furniture', 'Electronics', 'Books', 'Clothes', 'Plants', 'Home & Kitchen', 'School Supplies', 'Others'],
   services: ['All', 'Repair', 'Cleaning', 'Tutoring', 'Transport', 'Gardening', 'Others'],
+  requests: ['All', 'Books', 'Furniture', 'Electronics', 'Clothes', 'Home & Kitchen', 'Health & Mobility', 'Services & Help', 'Others'],
   disposal: ['All', 'Floral Waste', 'E-Waste', 'Plastic', 'Clothes', 'Paper', 'Metal'],
   plants: ['All', 'Indoor Plants', 'Plant Cuttings', 'Seeds', 'Plant Pots', 'Gardening Resources'],
   others: ['All', 'Upcycling & Storage', 'Packing Supplies', 'Craft & Art', 'Others'],
@@ -97,6 +99,13 @@ export default function ExploreResourcesPage({ onViewDetails }) {
           subtitle: 'Find community members offering repairs, tutoring, cleaning & local help.',
           searchPlaceholder: 'Search services (e.g. laptop repair, maths tuition, cleaning)...',
           gridHeading: 'Available Community Services',
+        }
+      case 'requests':
+        return {
+          title: 'COMMUNITY REQUESTS',
+          subtitle: 'Discover what items, skills, or support neighbors are actively seeking. Lend a hand or share what you have.',
+          searchPlaceholder: 'Search community requests (e.g. textbooks, study table, laptop, wheelchair, repair)...',
+          gridHeading: 'Open Requests by Community Members',
         }
       case 'disposal':
         return {
@@ -256,24 +265,28 @@ export default function ExploreResourcesPage({ onViewDetails }) {
             )}
           </div>
 
-          {/* Pricing Mode Filter: All / Free / Paid */}
+          {/* Pricing Mode Filter + Reset Button */}
           <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-            <span className="text-xs font-medium text-gray-400">Pricing:</span>
-            <div className="inline-flex p-1 bg-gray-100 rounded-2xl border border-gray-200">
-              {['All', 'Free', 'Paid'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setTypeFilter(f)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    typeFilter === f
-                      ? 'bg-white text-emerald-700 shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+            {activeTab !== 'requests' && (
+              <>
+                <span className="text-xs font-medium text-gray-400">Pricing:</span>
+                <div className="inline-flex p-1 bg-gray-100 rounded-2xl border border-gray-200">
+                  {['All', 'Free', 'Paid'].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setTypeFilter(f)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        typeFilter === f
+                          ? 'bg-white text-emerald-700 shadow-xs'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             {(universalSearch || selectedSubCategory !== 'All' || typeFilter !== 'All' || activeTab !== 'all') && (
               <button

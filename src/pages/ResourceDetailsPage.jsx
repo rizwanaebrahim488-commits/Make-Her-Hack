@@ -344,160 +344,220 @@ export default function ResourceDetailsPage({
           </div>
         )}
 
-        {/* ================= IMAGE VIEWER & GALLERY ================= */}
-        <div className="space-y-3 mb-6">
-          <div className="relative bg-gray-900 rounded-3xl overflow-hidden aspect-[4/3] sm:aspect-[16/10] shadow-sm">
-            {currentImage ? (
-              <img
-                src={currentImage}
-                alt={resource.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-100">
-                <ImageIcon className="w-12 h-12 mb-2" />
-                <span className="text-sm font-medium">No photo uploaded</span>
+        {/* ================= HEADER: REQUEST (NO IMAGE) vs REGULAR RESOURCE (IMAGE GALLERY) ================= */}
+        {resource.resource_type === 'request' ? (
+          <div className="bg-gradient-to-br from-rose-50/90 via-white to-amber-50/40 rounded-3xl border border-rose-200/90 p-6 sm:p-8 shadow-xs mb-6 relative overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                  <span>📢</span>
+                  <span>Community Request</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span>{resource.category || 'General'}</span>
+                </span>
+                {resource.is_time_sensitive && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                    <span>⏱️</span>
+                    <span>Urgent / Time-Sensitive</span>
+                  </span>
+                )}
               </div>
-            )}
 
-            {/* Wishlist Button */}
-            <button
-              onClick={handleLike}
-              disabled={likeLoading}
-              className={`absolute top-4 right-4 z-10 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md cursor-pointer ${
-                isLiked
-                  ? 'bg-red-500 text-white scale-105 shadow-red-500/30'
-                  : 'bg-white/90 hover:bg-white text-gray-700 hover:scale-105'
-              }`}
-              title={isLiked ? 'Saved in Wishlist' : 'Add to Wishlist'}
-            >
-              <Heart
-                className={`w-5 h-5 ${
-                  isLiked ? 'fill-white text-white' : 'text-gray-700'
-                } ${likeLoading ? 'animate-pulse' : ''}`}
-              />
-            </button>
-
-            {/* Price badge */}
-            <div className="absolute top-4 left-4 z-10">
-              <span
-                className={`inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-black shadow-md ${
-                  isFree
-                    ? 'bg-emerald-600 text-white border border-emerald-400'
-                    : 'bg-amber-500 text-white border border-amber-300'
+              {/* Wishlist Button */}
+              <button
+                onClick={handleLike}
+                disabled={likeLoading}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition shadow-2xs cursor-pointer ${
+                  isLiked
+                    ? 'bg-red-500 text-white scale-105 shadow-red-500/30'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
                 }`}
+                title={isLiked ? 'Saved in Wishlist' : 'Add to Wishlist'}
               >
-                {priceDisplay}
-              </span>
+                <Heart
+                  className={`w-4 h-4 ${
+                    isLiked ? 'fill-white text-white' : 'text-gray-700'
+                  } ${likeLoading ? 'animate-pulse' : ''}`}
+                />
+              </button>
             </div>
 
-            {/* Condition / Status Pill */}
-            <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
-              {resource.condition && (
-                <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-black/70 backdrop-blur-md text-white border border-white/20">
-                  {resource.condition}
-                </span>
-              )}
-              {resource.status && resource.status !== 'available' && (
-                <span className="px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-xs">
-                  {resource.status}
-                </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
+              {resource.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-600">
+              <div className="flex items-center gap-1.5 font-medium text-emerald-800 bg-white px-3 py-1 rounded-xl border border-emerald-100">
+                <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{resource.location_name || resource.location || 'Location not specified'}</span>
+              </div>
+              {postedDate && (
+                <div className="flex items-center gap-1 text-gray-500">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Requested on {postedDate}</span>
+                </div>
               )}
             </div>
+          </div>
+        ) : (
+          <>
+            {/* ================= IMAGE VIEWER & GALLERY ================= */}
+            <div className="space-y-3 mb-6">
+              <div className="relative bg-gray-900 rounded-3xl overflow-hidden aspect-[4/3] sm:aspect-[16/10] shadow-sm">
+                {currentImage ? (
+                  <img
+                    src={currentImage}
+                    alt={resource.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-100">
+                    <ImageIcon className="w-12 h-12 mb-2" />
+                    <span className="text-sm font-medium">No photo uploaded</span>
+                  </div>
+                )}
 
-            {/* Image Counter & Prev/Next */}
-            {imageUrls.length > 1 && (
-              <>
-                <div className="absolute bottom-4 right-4 z-10">
-                  <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-black/70 backdrop-blur-md text-white border border-white/20">
-                    {activeImageIndex + 1} / {imageUrls.length}
+                {/* Wishlist Button */}
+                <button
+                  onClick={handleLike}
+                  disabled={likeLoading}
+                  className={`absolute top-4 right-4 z-10 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md transition shadow-md cursor-pointer ${
+                    isLiked
+                      ? 'bg-red-500 text-white scale-105 shadow-red-500/30'
+                      : 'bg-white/90 hover:bg-white text-gray-700 hover:scale-105'
+                  }`}
+                  title={isLiked ? 'Saved in Wishlist' : 'Add to Wishlist'}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${
+                      isLiked ? 'fill-white text-white' : 'text-gray-700'
+                    } ${likeLoading ? 'animate-pulse' : ''}`}
+                  />
+                </button>
+
+                {/* Price badge */}
+                <div className="absolute top-4 left-4 z-10">
+                  <span
+                    className={`inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-black shadow-md ${
+                      isFree
+                        ? 'bg-emerald-600 text-white border border-emerald-400'
+                        : 'bg-amber-500 text-white border border-amber-300'
+                    }`}
+                  >
+                    {priceDisplay}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1))
-                  }
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-xs transition cursor-pointer"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0))
-                  }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-xs transition cursor-pointer"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
+                {/* Condition / Status Pill */}
+                <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
+                  {resource.condition && (
+                    <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-black/70 backdrop-blur-md text-white border border-white/20">
+                      {resource.condition}
+                    </span>
+                  )}
+                  {resource.status && resource.status !== 'available' && (
+                    <span className="px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-xs">
+                      {resource.status}
+                    </span>
+                  )}
+                </div>
 
-          {/* Multiple Image Thumbnail Strip */}
-          {imageUrls.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {imageUrls.map((url, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 h-16 rounded-xl overflow-hidden shrink-0 border-2 transition cursor-pointer ${
-                    activeImageIndex === idx
-                      ? 'border-emerald-600 ring-2 ring-emerald-500/20 shadow-xs'
-                      : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img
-                    src={url}
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                {/* Image Counter & Prev/Next */}
+                {imageUrls.length > 1 && (
+                  <>
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-black/70 backdrop-blur-md text-white border border-white/20">
+                        {activeImageIndex + 1} / {imageUrls.length}
+                      </span>
+                    </div>
 
-        {/* ================= TITLE & OVERVIEW ================= */}
-        <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
-              <TypeIcon className="w-4 h-4" />
-            </span>
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              {TYPE_LABELS[resource.resource_type] || 'Resource'}
-            </span>
-            <span className="text-gray-300">•</span>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-              {resource.category || 'General'}
-            </span>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
-            {resource.title}
-          </h1>
-
-          {/* Location & Date */}
-          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-600">
-            <div className="flex items-center gap-1.5 font-medium text-emerald-800 bg-emerald-50/70 px-3 py-1 rounded-xl">
-              <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{resource.location_name || resource.location || 'Location not specified'}</span>
-            </div>
-            {postedDate && (
-              <div className="flex items-center gap-1 text-gray-500">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Listed on {postedDate}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1))
+                      }
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-xs transition cursor-pointer"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveImageIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0))
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-xs transition cursor-pointer"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+
+              {/* Multiple Image Thumbnail Strip */}
+              {imageUrls.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  {imageUrls.map((url, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`relative w-20 h-16 rounded-xl overflow-hidden shrink-0 border-2 transition cursor-pointer ${
+                        activeImageIndex === idx
+                          ? 'border-emerald-600 ring-2 ring-emerald-500/20 shadow-xs'
+                          : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={url}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ================= TITLE & OVERVIEW ================= */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                  <TypeIcon className="w-4 h-4" />
+                </span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  {TYPE_LABELS[resource.resource_type] || 'Resource'}
+                </span>
+                <span className="text-gray-300">•</span>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                  {resource.category || 'General'}
+                </span>
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
+                {resource.title}
+              </h1>
+
+              {/* Location & Date */}
+              <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-600">
+                <div className="flex items-center gap-1.5 font-medium text-emerald-800 bg-emerald-50/70 px-3 py-1 rounded-xl">
+                  <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{resource.location_name || resource.location || 'Location not specified'}</span>
+                </div>
+                {postedDate && (
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Listed on {postedDate}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ================= FULL DESCRIPTION ================= */}
         <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">

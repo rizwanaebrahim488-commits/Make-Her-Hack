@@ -530,5 +530,77 @@ export const INITIAL_RESOURCES = [
       avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
       badge: 'Verified Member'
     }
+  },
+
+  // --- COMMUNITY REQUESTS (Text-only, no images accepted) ---
+  {
+    id: 'req-1',
+    resource_type: 'request',
+    title: 'Looking for Class 10 NCERT Science & Maths Textbooks',
+    description: 'Looking for Class 10 CBSE/NCERT Science and Mathematics textbooks for my younger sibling. Any recent edition is welcome. Happy to pick up anywhere in Perumbavoor.',
+    category: 'Books',
+    condition: 'Any readable condition',
+    status: 'Seeking',
+    is_free: true,
+    price: 0,
+    quantity: 2,
+    location: 'Perumbavoor',
+    distance: '1.5 km away',
+    image_url: null,
+    image_urls: [],
+    created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+    provider: {
+      id: 'usr-3',
+      full_name: 'Fathima Noor',
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+      badge: 'Student Member'
+    }
+  },
+  {
+    id: 'req-2',
+    resource_type: 'request',
+    title: 'Need Foldable Wheelchair for Elderly Neighbor',
+    description: 'Urgent requirement for a standard adult folding wheelchair for temporary rehabilitation use over the next 2 months. We can arrange pickup immediately.',
+    category: 'Health & Mobility',
+    condition: 'Functional',
+    status: 'Seeking',
+    is_free: true,
+    price: 0,
+    quantity: 1,
+    is_time_sensitive: true,
+    location: 'Aluva',
+    distance: '3.8 km away',
+    image_url: null,
+    image_urls: [],
+    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    provider: {
+      id: 'usr-1',
+      full_name: 'Aiswarya S.',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      badge: 'Active Giver'
+    }
+  },
+  {
+    id: 'req-3',
+    resource_type: 'request',
+    title: 'Seeking Basic Study Desk / Small Table',
+    description: 'Setting up a study space for an aspiring college student. Looking for a compact desk or study table with or without drawers. Can arrange self-transport.',
+    category: 'Furniture',
+    condition: 'Good',
+    status: 'Seeking',
+    is_free: true,
+    price: 0,
+    quantity: 1,
+    location: 'Kalamassery',
+    distance: '4.2 km away',
+    image_url: null,
+    image_urls: [],
+    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+    provider: {
+      id: 'usr-4',
+      full_name: 'Deepak Varghese',
+      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
+      badge: 'Community Contributor'
+    }
   }
 ];

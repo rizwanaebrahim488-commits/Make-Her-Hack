@@ -215,8 +215,12 @@ export async function getResources({
         .neq('status', 'deleted')
         .neq('status', 'expired')
 
-      if (resourceType && resourceType !== 'all') {
-        query = query.eq('resource_type', resourceType)
+      if (!resourceType || resourceType === 'all') {
+        // "All Resources" shows offered items, services, disposal, etc. Exclude requests!
+        query = query.neq('resource_type', 'request')
+      } else {
+        const normalizedType = resourceType.toLowerCase().replace(/s$/, '')
+        query = query.or(`resource_type.eq.${normalizedType},resource_type.eq.${normalizedType}s`)
       }
 
       if (category && category !== 'All') {
@@ -274,7 +278,13 @@ export async function getResources({
   // Apply filters on combined list
   let filtered = [...combined]
 
-  if (resourceType && resourceType !== 'all') {
+  if (!resourceType || resourceType === 'all') {
+    // "All Resources" excludes requests so requests are only in their own dedicated Requests tab
+    filtered = filtered.filter(item => {
+      const it = (item.resource_type || 'item').toLowerCase().replace(/s$/, '')
+      return it !== 'request'
+    })
+  } else {
     const rt = resourceType.toLowerCase().replace(/s$/, '')
     filtered = filtered.filter(item => {
       const it = (item.resource_type || 'item').toLowerCase().replace(/s$/, '')
