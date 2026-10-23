@@ -78,6 +78,7 @@ export default function ResourceDetailsPage({
   const [messageSent, setMessageSent] = useState(false)
   const [messageContent, setMessageContent] = useState('')
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [calculatedDistance, setCalculatedDistance] = useState(null)
 
   // Keep resource updated if initialResource prop changes
   useEffect(() => {
@@ -390,7 +391,10 @@ export default function ResourceDetailsPage({
             <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-600">
               <div className="flex items-center gap-1.5 font-medium text-emerald-800 bg-white px-3 py-1 rounded-xl border border-emerald-100">
                 <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{resource.location_name || resource.location || 'Location not specified'}</span>
+                <span>
+                  {resource.location_name || resource.location || 'Location not specified'}
+                  {calculatedDistance ? ` (${calculatedDistance.replace(/\s*away$/, '')} from you)` : ''}
+                </span>
               </div>
               {postedDate && (
                 <div className="flex items-center gap-1 text-gray-500">
@@ -546,7 +550,10 @@ export default function ResourceDetailsPage({
               <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-600">
                 <div className="flex items-center gap-1.5 font-medium text-emerald-800 bg-emerald-50/70 px-3 py-1 rounded-xl">
                   <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{resource.location_name || resource.location || 'Location not specified'}</span>
+                  <span>
+                    {resource.location_name || resource.location || 'Location not specified'}
+                    {calculatedDistance ? ` (${calculatedDistance.replace(/\s*away$/, '')} from you)` : ''}
+                  </span>
                 </div>
                 {postedDate && (
                   <div className="flex items-center gap-1 text-gray-500">
@@ -704,16 +711,41 @@ export default function ResourceDetailsPage({
 
         {/* ================= LOCATION & MAP ================= */}
         <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-600" />
-              <span>Location on Map</span>
-            </h3>
-            <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
-              {resource.location_name || resource.location || 'Location set'}
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                <span>Resource Location & Distance</span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {calculatedDistance ? (
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <span>📍</span>
+                    <span>Location: {resource.location_name || resource.location || 'Resource location'} ({calculatedDistance.replace(/\s*away$/, '')} from you)</span>
+                  </span>
+                ) : (
+                  <span>Click &ldquo;Use My Location&rdquo; or tap on the map to view distance</span>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">
+                {resource.location_name || resource.location || 'Location set'}
+              </span>
+              {calculatedDistance && (
+                <span className="text-xs font-extrabold text-teal-800 bg-teal-50 px-3 py-1 rounded-xl border border-teal-200 shadow-2xs">
+                  {calculatedDistance}
+                </span>
+              )}
+            </div>
           </div>
-          <ResourceMap resource={resource} className="rounded-2xl overflow-hidden" />
+
+          <ResourceMap
+            resource={resource}
+            className="rounded-2xl overflow-hidden"
+            onDistanceCalculated={(distStr) => setCalculatedDistance(distStr)}
+          />
         </div>
 
         {/* ================= PROVIDER PROFILE CARD ================= */}
