@@ -1,122 +1,194 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react'
+import { AuthProvider } from './context/AuthContext'
+import Navbar from './components/Navbar'
+import AuthModal from './components/AuthModal'
+import DatabaseNoticeBanner from './components/DatabaseNoticeBanner'
+import HomePage from './pages/HomePage'
+import ExploreResourcesPage from './pages/ExploreResourcesPage'
+import ResourceDetailsPage from './pages/ResourceDetailsPage'
+// Account pages
+import MyReLoopPage from './pages/MyReLoopPage'
+import EditProfilePage from './pages/EditProfilePage'
+import NotificationsPage from './pages/NotificationsPage'
+import MessagesPage from './pages/MessagesPage'
+import ChatPage from './pages/ChatPage'
+import MyResourcesPage from './pages/MyResourcesPage'
+import MyRequestsPage from './pages/MyRequestsPage'
+import WishlistPage from './pages/WishlistPage'
+import ActivityPage from './pages/ActivityPage'
+import SettingsPage from './pages/SettingsPage'
+import HelpSupportPage from './pages/HelpSupportPage'
+import AddResourcePage from './pages/AddResourcePage'
 
-function App() {
-  const [count, setCount] = useState(0)
+function AppContent() {
+  const [currentView, setCurrentView] = useState('explore')
+  const [selectedResource, setSelectedResource] = useState(null)
+  const [previousView, setPreviousView] = useState('explore')
+  const [chat, setChat] = useState(null)
+
+  const handleOpenResourceDetails = (resource) => {
+    setSelectedResource(resource)
+    setPreviousView(currentView === 'details' ? previousView : currentView)
+    setCurrentView('details')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Listen for resource opens from Home page cards
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail && e.detail.id) {
+        setSelectedResource(e.detail)
+        setPreviousView(currentView === 'details' ? previousView : currentView)
+        setCurrentView('details')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+    window.addEventListener('reloop-open-resource', handler)
+    return () => window.removeEventListener('reloop-open-resource', handler)
+  }, [currentView, previousView])
+
+  const handleOpenChat = ({ resourceId, otherUserId, otherName, resourceTitle }) => {
+    setChat({ resourceId, otherUserId, otherName, resourceTitle })
+    setCurrentView('chat')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 selection:bg-emerald-500 selection:text-white">
+      {/* Database Setup Notice if tables not yet created */}
+      <DatabaseNoticeBanner />
+
+      {/* Navigation Header */}
+      <Navbar
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        onOpenResourceDetails={handleOpenResourceDetails}
+        onOpenChat={handleOpenChat}
+      />
+
+      {/* Main Content View Switcher */}
+      <div className="flex-1">
+        {currentView === 'home' && (
+          <HomePage
+            onExploreClick={() => {
+              setCurrentView('explore')
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+            setCurrentView={setCurrentView}
+          />
+        )}
+
+        {currentView === 'explore' && (
+          <ExploreResourcesPage
+            onViewDetails={handleOpenResourceDetails}
+            onOpenChat={handleOpenChat}
+          />
+        )}
+
+        {currentView === 'details' && (
+          <ResourceDetailsPage
+            resource={selectedResource}
+            onBack={() => setCurrentView(previousView || 'explore')}
+            onOpenChat={handleOpenChat}
+            onManageMyResources={() => setCurrentView('resources')}
+          />
+        )}
+
+        {/* Account section */}
+        {currentView === 'dashboard' && (
+          <MyReLoopPage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'edit-profile' && (
+          <EditProfilePage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'notifications' && (
+          <NotificationsPage
+            setCurrentView={setCurrentView}
+            onOpenChat={handleOpenChat}
+            onOpenResourceDetails={handleOpenResourceDetails}
+          />
+        )}
+        {currentView === 'messages' && (
+          <MessagesPage
+            setCurrentView={setCurrentView}
+            onOpenChat={handleOpenChat}
+            onOpenResourceDetails={handleOpenResourceDetails}
+          />
+        )}
+        {currentView === 'chat' && (
+          <ChatPage
+            setCurrentView={setCurrentView}
+            chat={chat}
+            onOpenResourceDetails={handleOpenResourceDetails}
+          />
+        )}
+        {currentView === 'resources' && (
+          <MyResourcesPage
+            setCurrentView={setCurrentView}
+            onOpenResourceDetails={handleOpenResourceDetails}
+            onOpenChat={handleOpenChat}
+          />
+        )}
+        {currentView === 'requests' && (
+          <MyRequestsPage
+            setCurrentView={setCurrentView}
+            onOpenChat={handleOpenChat}
+            onOpenResourceDetails={handleOpenResourceDetails}
+          />
+        )}
+        {currentView === 'wishlist' && (
+          <WishlistPage
+            setCurrentView={setCurrentView}
+            onOpenResourceDetails={handleOpenResourceDetails}
+          />
+        )}
+        {currentView === 'activity' && (
+          <ActivityPage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'settings' && (
+          <SettingsPage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'help' && (
+          <HelpSupportPage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'add-resource' && (
+          <AddResourcePage setCurrentView={setCurrentView} />
+        )}
+      </div>
+
+      {/* Community Footer */}
+      <footer className="bg-white border-t border-gray-200/80 py-10 px-4 sm:px-6 lg:px-8 text-center text-xs text-gray-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-base">♻️</span>
+            <span className="font-bold text-gray-800 text-sm">ReLoop</span>
+            <span>— Give. Reuse. Repeat.</span>
+          </div>
           <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+            Community-driven circular resource sharing. Built for sustainability.
           </p>
+          <div className="flex items-center gap-4 text-gray-400">
+            <span>Items</span>
+            <span>•</span>
+            <span>Services</span>
+            <span>•</span>
+            <span>Disposal</span>
+            <span>•</span>
+            <span>Plants</span>
+          </div>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </footer>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* Action-Based Authentication Modal */}
+      <AuthModal />
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  )
+}
