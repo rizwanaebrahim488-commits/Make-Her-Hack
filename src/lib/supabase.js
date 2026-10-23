@@ -477,6 +477,7 @@ export async function createResource({
         .single()
 
       if (!error && data) {
+        saveLocalCustomResource(data)
         return { data, error: null, source: 'supabase' }
       }
       console.warn('Supabase insert failed, saving to local store:', error?.message)
@@ -900,6 +901,76 @@ export function saveLocalRequest(req) {
   } catch (e) {
     return req
   }
+}
+
+export async function getCommunityRequests(limit = 4) {
+  let list = []
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('requests')
+        .select(`
+          id,
+          title,
+          message,
+          status,
+          created_at,
+          resource_id,
+          requester_id,
+          provider_id,
+          resource:resources ( id, title, category, location_name, resource_type, is_time_sensitive ),
+          requester:profiles!requests_requester_id_fkey ( id, full_name, avatar_url )
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (!error && data && data.length > 0) {
+        list = data
+      }
+    } catch (e) {
+      console.warn('getCommunityRequests query warning:', e)
+    }
+  }
+
+  // Also include any local custom resources with resource_type === 'request'
+  const localItems = getLocalCustomResources().filter(
+    (x) => (x.resource_type === 'request' || x.type === 'request') && x.status !== 'deleted'
+  )
+
+  for (const item of localItems) {
+    if (!list.some((r) => r.resource_id === item.id || r.id === item.id)) {
+      list.unshift({
+        id: item.id,
+        title: item.title,
+        message: item.description,
+        status: 'pending',
+        created_at: item.created_at || new Date().toISOString(),
+        resource_id: item.id,
+        requester_id: item.provider_id,
+        resource: item,
+        requester: item.provider || { full_name: 'Community Member' }
+      })
+    }
+  }
+
+  // If still empty, use initial seed requests
+  if (list.length === 0) {
+    const seedReqs = INITIAL_RESOURCES.filter((x) => x.resource_type === 'request')
+    list = seedReqs.map((sr) => ({
+      id: sr.id,
+      title: sr.title,
+      message: sr.description,
+      status: 'pending',
+      created_at: sr.created_at,
+      resource_id: sr.id,
+      requester_id: sr.provider?.id,
+      resource: sr,
+      requester: sr.provider || { full_name: 'Community Member' },
+    }))
+  }
+
+  return { data: list.slice(0, limit), error: null }
 }
 
 export async function getRequestsByRequester(userId) {

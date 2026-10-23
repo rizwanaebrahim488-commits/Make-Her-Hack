@@ -26,6 +26,14 @@ function AppContent() {
   const [selectedResource, setSelectedResource] = useState(null)
   const [previousView, setPreviousView] = useState('explore')
   const [chat, setChat] = useState(null)
+  const [exploreFilter, setExploreFilter] = useState({ category: 'all', search: '' })
+
+  const handleNavigateToExplore = ({ category = 'all', search = '' } = {}) => {
+    setExploreFilter({ category: category || 'all', search: search || '' })
+    setPreviousView(currentView)
+    setCurrentView('explore')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleOpenResourceDetails = (resource) => {
     setSelectedResource(resource)
@@ -71,11 +79,9 @@ function AppContent() {
       <div className="flex-1 pb-16 md:pb-0">
         {currentView === 'home' && (
           <HomePage
-            onExploreClick={() => {
-              setCurrentView('explore')
-              window.scrollTo({ top: 0, behavior: 'smooth' })
-            }}
+            onExploreClick={handleNavigateToExplore}
             setCurrentView={setCurrentView}
+            onOpenResourceDetails={handleOpenResourceDetails}
           />
         )}
 
@@ -83,6 +89,8 @@ function AppContent() {
           <ExploreResourcesPage
             onViewDetails={handleOpenResourceDetails}
             onOpenChat={handleOpenChat}
+            initialCategory={exploreFilter.category}
+            initialSearch={exploreFilter.search}
           />
         )}
 

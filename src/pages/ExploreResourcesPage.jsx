@@ -25,17 +25,38 @@ const SUB_CATEGORIES = {
   others: ['All', 'Upcycling & Storage', 'Packing Supplies', 'Craft & Art', 'Others'],
 }
 
-export default function ExploreResourcesPage({ onViewDetails }) {
+export default function ExploreResourcesPage({
+  onViewDetails,
+  onOpenChat,
+  initialCategory,
+  initialSearch,
+}) {
   // Read initial query params if any
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
-  const initialSearch = searchParams.get('search') || ''
-  const initialCategory = searchParams.get('category') || 'all'
+  const initialSearchFromUrl = searchParams.get('search') || ''
+  const initialCategoryFromUrl = searchParams.get('category') || 'all'
 
   // Filter states
-  const [activeTab, setActiveTab] = useState(initialCategory)
-  const [universalSearch, setUniversalSearch] = useState(initialSearch)
+  const [activeTab, setActiveTab] = useState(initialCategory || initialCategoryFromUrl || 'all')
+  const [universalSearch, setUniversalSearch] = useState(
+    initialSearch !== undefined && initialSearch !== '' ? initialSearch : initialSearchFromUrl
+  )
   const [typeFilter, setTypeFilter] = useState('All') // 'All' | 'Free' | 'Paid'
   const [selectedSubCategory, setSelectedSubCategory] = useState('All')
+
+  // Sync prop changes from HomePage searches and category cards
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveTab(initialCategory)
+      setSelectedSubCategory('All')
+    }
+  }, [initialCategory])
+
+  useEffect(() => {
+    if (initialSearch !== undefined) {
+      setUniversalSearch(initialSearch)
+    }
+  }, [initialSearch])
 
   // Data states
   const [resources, setResources] = useState([])
