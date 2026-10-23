@@ -19,6 +19,7 @@ import ActivityPage from './pages/ActivityPage'
 import SettingsPage from './pages/SettingsPage'
 import HelpSupportPage from './pages/HelpSupportPage'
 import AddResourcePage from './pages/AddResourcePage'
+import MobileBottomNav from './components/MobileBottomNav'
 
 function AppContent() {
   const [currentView, setCurrentView] = useState('explore')
@@ -67,7 +68,7 @@ function AppContent() {
       />
 
       {/* Main Content View Switcher */}
-      <div className="flex-1">
+      <div className="flex-1 pb-16 md:pb-0">
         {currentView === 'home' && (
           <HomePage
             onExploreClick={() => {
@@ -178,6 +179,9 @@ function AppContent() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile-Friendly Fixed Bottom Navigation Bar */}
+      <MobileBottomNav currentView={currentView} setCurrentView={setCurrentView} />
 
       {/* Action-Based Authentication Modal */}
       <AuthModal />

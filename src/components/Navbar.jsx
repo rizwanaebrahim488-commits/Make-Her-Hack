@@ -62,8 +62,8 @@ export default function Navbar({ currentView, setCurrentView }) {
             </div>
           </div>
 
-          {/* Center Navigation */}
-          <nav className="flex items-center gap-1 sm:gap-2">
+          {/* Center Navigation (Desktop / Tablet) */}
+          <nav className="hidden sm:flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setCurrentView('home')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${

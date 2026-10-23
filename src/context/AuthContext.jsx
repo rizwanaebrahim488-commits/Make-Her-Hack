@@ -43,12 +43,16 @@ export function AuthProvider({ children }) {
         setLoading(false)
       })
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if (!mounted) return
         if (session?.user) {
           setUser(session.user)
           fetchProfile(session.user.id)
           loadUserWishlistFromDb(session.user.id)
+          // Clean hash fragment after confirmation
+          if (typeof window !== 'undefined' && window.location.hash?.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname)
+          }
         } else {
           setUser(null)
           setProfile(null)
@@ -181,13 +185,22 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const getRedirectUrl = () => {
+    if (typeof window !== 'undefined') {
+      return (window.location.origin + window.location.pathname).replace(/\/$/, '') + '/'
+    }
+    return 'https://rizwanaebrahim488-commits.github.io/Make-Her-Hack/'
+  }
+
   const signUp = async (fullName, email, password) => {
     if (supabase) {
+      const redirectUrl = getRedirectUrl()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName }
+          data: { full_name: fullName },
+          emailRedirectTo: redirectUrl,
         }
       })
       if (error) throw error
@@ -200,8 +213,10 @@ export function AuthProvider({ children }) {
           avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`
         })
       }
-      completeAuth(data.user)
-      return data
+      if (data.session) {
+        completeAuth(data.user)
+      }
+      return { ...data, needsEmailConfirmation: !data.session }
     } else {
       const demoUser = {
         id: 'usr-demo-' + Date.now(),
@@ -217,9 +232,10 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = async () => {
     if (supabase) {
+      const redirectUrl = getRedirectUrl()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin }
+        options: { redirectTo: redirectUrl }
       })
       if (error) throw error
       return data
@@ -235,6 +251,36 @@ export function AuthProvider({ children }) {
       completeAuth(googleUser, googleUser)
       return { user: googleUser }
     }
+  }
+
+  const resendVerificationEmail = async (email) => {
+    if (supabase && email) {
+      const redirectUrl = getRedirectUrl()
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      })
+      if (error) throw error
+      return true
+    }
+    return true
+  }
+
+  const signInAsGuest = (guestName = 'Community Guest') => {
+    const guestUser = {
+      id: 'usr-guest-' + Date.now(),
+      email: 'guest@reloop.community',
+      user_metadata: { full_name: guestName },
+      full_name: guestName,
+      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guestName)}`,
+      badge: 'Guest Member'
+    }
+    localStorage.setItem('reloop_demo_user', JSON.stringify(guestUser))
+    completeAuth(guestUser, guestUser)
+    return guestUser
   }
 
   const signOut = async () => {
@@ -308,6 +354,8 @@ export function AuthProvider({ children }) {
         signIn,
         signUp,
         signInWithGoogle,
+        resendVerificationEmail,
+        signInAsGuest,
         signOut
       }}
     >

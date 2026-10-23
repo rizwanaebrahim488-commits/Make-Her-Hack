@@ -19,7 +19,13 @@ const isValidSupabaseConfig = Boolean(
 )
 
 export const supabase = isValidSupabaseConfig
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   : null
 
 export const isLiveBackendAvailable = () => Boolean(supabase)
