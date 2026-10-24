@@ -144,7 +144,7 @@ export default function LocationMap({
     : DEFAULT_CENTER
 
   return (
-    <div className={`${className} flex flex-col gap-3`}>
+    <div className={`${className} flex flex-col gap-3 relative z-0`} style={{ isolation: 'isolate' }}>
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-100 text-red-700 text-xs">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -152,7 +152,8 @@ export default function LocationMap({
         </div>
       )}
       <div
-        className="relative w-full h-64 rounded-2xl border border-gray-200 overflow-hidden shadow-sm"
+        className="relative z-0 w-full h-64 rounded-2xl border border-gray-200 overflow-hidden shadow-sm"
+        style={{ isolation: 'isolate' }}
         ref={containerRef}
       >
         <MapContainer

@@ -246,7 +246,7 @@ export default function ResourceMap({
   const distanceText = formatDistanceString(distanceMeters)
 
   return (
-    <div className={`${className} flex flex-col gap-3.5`}>
+    <div className={`${className} flex flex-col gap-3.5 relative z-0`} style={{ isolation: 'isolate' }}>
       {/* Distance Display & Status Banner */}
       <div className="rounded-2xl border transition-all duration-300 overflow-hidden">
         {distanceText ? (
@@ -299,7 +299,10 @@ export default function ResourceMap({
       )}
 
       {/* Interactive Leaflet Map Container */}
-      <div className="w-full h-72 sm:h-80 md:h-96 rounded-3xl border border-gray-200 overflow-hidden shadow-xs relative">
+      <div
+        className="w-full h-72 sm:h-80 md:h-96 rounded-3xl border border-gray-200 overflow-hidden shadow-xs relative z-0"
+        style={{ isolation: 'isolate' }}
+      >
         <MapContainer
           center={resourceCoords}
           zoom={DEFAULT_ZOOM}
@@ -368,14 +371,14 @@ export default function ResourceMap({
 
         {/* Loading Overlay */}
         {locating && (
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-2xs flex flex-col items-center justify-center text-white rounded-3xl z-1000">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-2xs flex flex-col items-center justify-center text-white rounded-3xl z-20">
             <Loader2 className="w-7 h-7 animate-spin mb-2" />
             <span className="text-sm font-semibold">Detecting your location…</span>
           </div>
         )}
 
         {/* Floating Quick Hint on Map */}
-        <div className="absolute bottom-3 left-3 z-1000 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-gray-200/80 shadow-sm text-[11px] text-gray-700 flex items-center gap-1.5 pointer-events-none">
+        <div className="absolute bottom-3 left-3 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-gray-200/80 shadow-sm text-[11px] text-gray-700 flex items-center gap-1.5 pointer-events-none">
           <span>💡</span>
           <span>Tap anywhere on the map to set your location</span>
         </div>

@@ -739,7 +739,10 @@ export default function ResourceDetailsPage({
         )}
 
         {/* ================= LOCATION & MAP ================= */}
-        <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
+        <div
+          className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6 relative z-0"
+          style={{ isolation: 'isolate' }}
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
             <div>
               <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
@@ -772,7 +775,7 @@ export default function ResourceDetailsPage({
 
           <ResourceMap
             resource={resource}
-            className="rounded-2xl overflow-hidden"
+            className="rounded-2xl overflow-hidden relative z-0"
             onDistanceCalculated={(distStr) => setCalculatedDistance(distStr)}
           />
         </div>
