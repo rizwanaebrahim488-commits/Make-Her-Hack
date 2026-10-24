@@ -233,30 +233,37 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* 2.5 ECO GAMIFICATION BANNER: MATCH THE MATERIAL */}
+      {/* 2.5 ECO GAMIFICATION BANNER: LIVING ECO-TREE & MILESTONE REWARDS */}
       <section className="px-4 sm:px-6 lg:px-8 pb-8 pt-2">
         <div className="max-w-5xl mx-auto">
-          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-emerald-700/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-800 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-emerald-700/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
             <div className="flex-1 text-center md:text-left z-10">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-white/20 backdrop-blur-xs text-white mb-3 border border-white/20">
-                <span>🎮</span> Play &amp; Earn Demo Rewards
+                <span>🌱</span> Living Eco-Tree Progression
               </span>
               <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
-                Play &ldquo;Match the Material&rdquo; Mini-Game
+                Earn Eco-Points With Every Circular Transaction
               </h3>
               <p className="text-xs sm:text-sm text-emerald-100 mt-2 max-w-xl leading-relaxed">
-                Test your upcycling knowledge in 5 quick challenges, score 60+ points, and unlock your exclusive 10% OFF Google Pay-style scratch card reward!
+                Give an item (+50 pts), complete an exchange (+40 pts), or post requests (+20 pts). Level up your living tree from Seedling to Fruitful Forest and unlock Google Pay-style milestone discount rewards!
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 z-10">
               <button
                 type="button"
-                onClick={() => setCurrentView('game')}
-                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white text-emerald-800 font-black text-sm hover:bg-emerald-50 transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+                onClick={() => setCurrentView('rewards')}
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white text-emerald-800 font-black text-sm hover:bg-emerald-50 transition shadow-md cursor-pointer flex items-center justify-center gap-2"
               >
-                <span>Play Mini-Game</span>
+                <span>View My Rewards</span>
                 <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('add-resource')}
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-700/80 hover:bg-emerald-700 text-white font-bold text-sm border border-emerald-400/30 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Give Item (+50 pts)</span>
               </button>
             </div>
           </div>

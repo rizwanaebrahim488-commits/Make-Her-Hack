@@ -8,9 +8,11 @@ import {
   Sparkles,
   Trophy,
   ArrowRight,
+  PlusCircle,
   RotateCcw,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react'
 import { getEcoPoints, getTreeStage, MILESTONES } from '../lib/ecoPoints'
 
@@ -64,18 +66,18 @@ export default function MyRewardsPage({ setCurrentView }) {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Demo rewards unlocked through eco quizzes and circular activities
+              Milestone rewards unlocked exclusively through platform transactions & Living Eco-Tree growth
             </p>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               type="button"
-              onClick={() => setCurrentView('game')}
+              onClick={() => setCurrentView('add-resource')}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-emerald-600/20 transition cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Play Match the Material</span>
+              <PlusCircle className="w-4 h-4" />
+              <span>Give Item (+50 pts)</span>
             </button>
 
             {rewards.length > 0 && (
@@ -103,7 +105,7 @@ export default function MyRewardsPage({ setCurrentView }) {
                   {treeStage.title} Progression ({ecoPoints} Eco-Points)
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Earn points from giving, exchanges, and daily quizzes to unlock higher tier milestone rewards.
+                  Earn points by giving items (+50 pts), completing exchanges (+40 pts), and sharing resources (+20 pts).
                 </p>
               </div>
             </div>
@@ -155,22 +157,32 @@ export default function MyRewardsPage({ setCurrentView }) {
               🎁
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">
-              No rewards unlocked yet
+              No milestone rewards unlocked yet
             </h3>
             <p className="text-xs sm:text-sm text-gray-500 max-w-sm mx-auto mb-6 leading-relaxed">
-              Play our mini-game <strong>"Match the Material"</strong>, score 60+ points, and unlock your 10% OFF demo scratch card reward!
+              Give a resource (+50 pts) or complete an exchange (+40 pts) to grow your Living Eco-Tree to 200 pts and unlock your first Google Pay-style digital reward card!
             </p>
-            <button
-              type="button"
-              onClick={() => setCurrentView('game')}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition cursor-pointer"
-            >
-              <span>Play Eco Game Now</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentView('add-resource')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Give an Item (+50 pts)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('explore')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs sm:text-sm transition cursor-pointer"
+              >
+                <span>Explore Circular Resources</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ) : (
-          /* Rewards Cards Grid */
+          /* Rewards Cards Grid (Google Pay / Paytm Style) */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {rewards.map((reward) => {
               const isCopied = copiedCode === reward.code
@@ -180,7 +192,7 @@ export default function MyRewardsPage({ setCurrentView }) {
                     day: 'numeric',
                     year: 'numeric',
                   })
-                : 'Recent'
+                : (reward.date || 'Recent')
 
               return (
                 <div
@@ -192,7 +204,7 @@ export default function MyRewardsPage({ setCurrentView }) {
                   <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-teal-400/20 pointer-events-none" />
 
                   <div>
-                    {/* Top bar */}
+                    {/* Top bar with ReLoop logo and milestone tag */}
                     <div className="flex items-center justify-between gap-2 mb-4">
                       <div className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-sm">
@@ -203,22 +215,28 @@ export default function MyRewardsPage({ setCurrentView }) {
                         </span>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/30 text-emerald-100 border border-emerald-300/30">
-                        {reward.status || 'Unlocked'}
+                        {reward.badge || 'Milestone Unlocked'}
                       </span>
                     </div>
 
-                    {/* Value */}
+                    {/* Discount Value */}
                     <div className="my-2">
                       <span className="text-3xl font-black tracking-tight text-white block">
                         {reward.discount || '10% OFF'}
                       </span>
                       <span className="text-xs text-emerald-100 font-medium">
-                        {reward.title || 'Circular Community Exchange Discount'}
+                        {reward.title || 'Living Eco-Tree Growth Milestone Reward'}
                       </span>
                     </div>
 
-                    {/* Code Box */}
-                    <div className="mt-4 p-3 bg-black/25 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-between gap-2">
+                    {/* Demo Disclaimer on Card */}
+                    <div className="my-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/30 backdrop-blur-xs border border-white/10 text-[10px] text-amber-200 font-semibold">
+                      <AlertCircle className="w-3 h-3 text-amber-300 shrink-0" />
+                      <span>Demo Reward — Not Valid for Real Purchases</span>
+                    </div>
+
+                    {/* Code Box with Copy Button */}
+                    <div className="mt-3 p-3 bg-black/25 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-between gap-2">
                       <div>
                         <span className="text-[10px] text-emerald-200 uppercase tracking-widest block font-bold">
                           Coupon Code
@@ -236,12 +254,12 @@ export default function MyRewardsPage({ setCurrentView }) {
                         {isCopied ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Copied!</span>
+                            <span>Code copied!</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
-                            <span>Copy</span>
+                            <span>Copy Code</span>
                           </>
                         )}
                       </button>
@@ -252,7 +270,6 @@ export default function MyRewardsPage({ setCurrentView }) {
                   <div className="mt-5 pt-3.5 border-t border-white/15 flex items-center justify-between text-[11px] text-emerald-200">
                     <div>
                       <span>Unlocked on {dateStr}</span>
-                      {reward.score && <span> • Score: {reward.score} pts</span>}
                     </div>
 
                     <button
@@ -269,7 +286,7 @@ export default function MyRewardsPage({ setCurrentView }) {
           </div>
         )}
 
-        {/* Info Modal */}
+        {/* Info / How to Redeem Modal */}
         {activeInfoReward && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
             <div
@@ -281,21 +298,25 @@ export default function MyRewardsPage({ setCurrentView }) {
               </div>
 
               <h3 className="text-lg font-black text-gray-900 text-center mb-1">
-                Redeeming Your 10% OFF Voucher
+                Redeeming Your {activeInfoReward.discount} Milestone Reward
               </h3>
-              <p className="text-xs text-gray-500 text-center mb-4">
-                Code: <strong className="text-emerald-700 font-mono">{activeInfoReward.code}</strong>
+              <p className="text-xs text-gray-500 text-center mb-3">
+                Coupon Code: <strong className="text-emerald-700 font-mono text-sm">{activeInfoReward.code}</strong>
               </p>
+
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold text-center mb-4">
+                ⚠️ Demo Reward — Not Valid for Real Purchases
+              </div>
 
               <div className="space-y-3 text-xs text-gray-600 bg-gray-50 p-4 rounded-2xl border border-gray-200/80 mb-5">
                 <p>
-                  1. Browse items or services on the <strong>Explore Resources</strong> page that have a listed price or transport fee.
+                  1. Browse circular items or services on the <strong>Explore Resources</strong> page that have a listed price or exchange fee.
                 </p>
                 <p>
-                  2. Share your reward code in direct chat with the resource giver or provider.
+                  2. Share your coupon code in direct chat with the resource giver or provider.
                 </p>
                 <p>
-                  3. This demo reward demonstrates circular economy incentives and upcycling gamification.
+                  3. This reward card is awarded automatically when your <strong>Living Eco-Tree</strong> reaches transaction milestones.
                 </p>
               </div>
 

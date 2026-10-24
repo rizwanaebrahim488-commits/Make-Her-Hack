@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import AccountLayout from '../components/AccountLayout'
 import LivingEcoTreeCard from '../components/LivingEcoTreeCard'
+import { getEcoPoints, getTreeStage } from '../lib/ecoPoints'
 
 const STATS = [
   { label: 'Resources given', icon: Package, key: 'resources' },
@@ -35,6 +36,19 @@ export default function MyReLoopPage({ setCurrentView }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [memberSince, setMemberSince] = useState(null)
+  const [ecoPoints, setEcoPoints] = useState(getEcoPoints())
+
+  useEffect(() => {
+    const handlePointsUpdate = () => {
+      setEcoPoints(getEcoPoints())
+    }
+    window.addEventListener('reloop-points-awarded', handlePointsUpdate)
+    window.addEventListener('storage', handlePointsUpdate)
+    return () => {
+      window.removeEventListener('reloop-points-awarded', handlePointsUpdate)
+      window.removeEventListener('storage', handlePointsUpdate)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -89,6 +103,7 @@ export default function MyReLoopPage({ setCurrentView }) {
   const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile?.full_name || user?.email || 'user')}`
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Community Member'
   const location = profile?.location || 'Not set'
+  const treeStage = getTreeStage(ecoPoints)
 
   return (
     <AccountLayout currentView="dashboard" setCurrentView={setCurrentView} unreadCount={unreadCount}>
@@ -199,9 +214,9 @@ export default function MyReLoopPage({ setCurrentView }) {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Activity score</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {stats.resources + stats.saved}
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Eco-Tree Score</p>
+                <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
+                  {ecoPoints} pts • {treeStage.icon} {treeStage.title}
                 </p>
               </div>
             </div>

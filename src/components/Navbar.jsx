@@ -102,16 +102,16 @@ export default function Navbar({ currentView, setCurrentView }) {
             </button>
 
             <button
-              onClick={() => setCurrentView('game')}
+              onClick={() => setCurrentView('rewards')}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
-                currentView === 'game'
+                currentView === 'rewards'
                   ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                   : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200/60'
               }`}
-              title="Play Match the Material Game"
+              title="View Eco-Tree Milestone Rewards"
             >
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>Eco Game</span>
+              <Gift className="w-4 h-4 text-emerald-600" />
+              <span>Rewards</span>
             </button>
           </nav>
 

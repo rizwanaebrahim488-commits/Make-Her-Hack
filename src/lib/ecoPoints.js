@@ -1,39 +1,47 @@
 /**
  * ReLoop Eco-Points & Living Eco-Tree Progression System
- * Handles activity-based scoring, tree visual stages, milestone unlocks, and reward persistence.
+ * Handles transaction-based scoring, tree visual stages, milestone unlocks, and reward persistence.
+ * Exclusively driven by real platform transactions (giving, exchanging, sharing). No trivia or mini-games.
  */
 
 import { supabase } from './supabase'
 
-// Point values awarded per real platform activity
+// Point values awarded per real platform activity (Transactions only)
 export const POINT_RULES = {
+  POST_FREE_ITEM: {
+    points: 50,
+    label: 'Gave a Resource / Item (Free)',
+    icon: '🎁',
+    description: 'Shared an unused item with the local community for free'
+  },
+  // Backward compatibility alias for POST_FREE_ITEM
   POST_ITEM: {
     points: 50,
-    label: 'Gave a Resource / Item',
+    label: 'Gave a Resource / Item (Free)',
     icon: '🎁',
-    description: 'Shared an unused item with the local community'
+    description: 'Shared an unused item with the local community for free'
+  },
+  COMPLETE_EXCHANGE_OR_RESALE: {
+    points: 40,
+    label: 'Exchange or Resell Item',
+    icon: '🏷️',
+    description: 'Listed an item for community exchange or affordable resale'
   },
   COMPLETE_EXCHANGE: {
     points: 40,
     label: 'Completed Circular Exchange',
     icon: '🤝',
-    description: 'Successfully handed over or received a circular resource'
+    description: 'Successfully handed over or completed a resource exchange'
   },
   POST_REQUEST_OR_DISPOSAL: {
     points: 20,
     label: 'Shared Request or Disposal Info',
     icon: '♻️',
-    description: 'Posted a community need or recycling center information'
-  },
-  DAILY_QUIZ: {
-    points: 20, // per correct question, max 100
-    label: 'Match the Material Quiz',
-    icon: '🧠',
-    description: 'Learned upcycling techniques in the bonus quiz'
+    description: 'Posted a community request or recycling center information'
   }
 }
 
-// Living Eco-Tree Growth Stages
+// Living Eco-Tree Growth Stages (5 Visual Levels)
 export const TREE_STAGES = [
   {
     level: 1,
@@ -112,27 +120,27 @@ export const TREE_STAGES = [
   }
 ]
 
-// Milestone definitions for Google Pay style rewards
+// Milestone definitions for Google Pay / Paytm style digital reward cards
 export const MILESTONES = [
   {
     points: 200,
-    title: '🌿 Sapling Milestone Reward',
+    title: '🌿 Growing Sapling Milestone Reward',
     discount: '10% OFF',
-    desc: 'Special reward for nurturing your Eco-Tree to the Sapling stage!',
-    codePrefix: 'ECO-SAPLING'
+    desc: 'Special reward for nurturing your Eco-Tree to 200 pts with circular exchanges!',
+    codePrefix: 'ECO-TREE'
   },
   {
     points: 500,
-    title: '🌳 Eco-Tree Milestone Reward',
+    title: '🌳 Healthy Eco-Tree Milestone Reward',
     discount: '15% OFF',
-    desc: 'Generous community discount for reaching Healthy Tree stage!',
+    desc: 'Generous community discount for reaching Healthy Tree stage (500 pts)!',
     codePrefix: 'ECO-TREE'
   },
   {
     points: 1000,
-    title: '🍎 Golden Forest Guardian Reward',
+    title: '🍎 Fruitful Community Forest Milestone Reward',
     discount: '25% OFF',
-    desc: 'Top-tier sustainable patron reward & Golden Community Status!',
+    desc: 'Top-tier sustainable patron reward & Golden Community Verified Status!',
     codePrefix: 'ECO-FOREST'
   }
 ]
@@ -143,7 +151,7 @@ const LOCAL_CLAIMED_MILESTONES_KEY = 'reloop_claimed_milestones'
 const LOCAL_REWARDS_KEY = 'reloop_rewards'
 
 /**
- * Generate a realistic unique coupon code like ECO-TREE-8K2P
+ * Generate a realistic unique coupon code like ECO-TREE-9X2P
  */
 export function generateMilestoneCode(prefix = 'ECO-TREE') {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
@@ -195,11 +203,11 @@ export function getTreeStage(points = 0) {
       Math.max(0, Math.round((pointsIntoStage / rangeSpan) * 100))
     )
     pointsNeeded = currentStage.max + 1 - pts
-    progressText = `${pts} / ${currentStage.max + 1} pts to ${currentStage.nextStageLabel}`
+    progressText = `${pts} / ${currentStage.max} pts to ${currentStage.nextStageLabel}`
   } else {
     progressPercent = 100
     pointsNeeded = 0
-    progressText = `${pts} pts • Max Level Golden Forest Guardian 🌟`
+    progressText = `${pts} pts • Max Level Fruitful Community Forest 🍎 (Golden Verified 🌟)`
   }
 
   const isGoldenVerified = pts >= 1000
@@ -240,7 +248,7 @@ export function getSavedRewards() {
 }
 
 /**
- * Award Eco-Points for a circular activity
+ * Award Eco-Points for a transaction or circular platform activity
  */
 export function awardEcoPoints(actionKey, customPoints = null, metadata = {}) {
   const rule = POINT_RULES[actionKey] || {
@@ -259,7 +267,7 @@ export function awardEcoPoints(actionKey, customPoints = null, metadata = {}) {
   const newTotal = oldTotal + earned
   localStorage.setItem(LOCAL_POINTS_KEY, String(newTotal))
 
-  // Append to history
+  // Append to activity history
   const historyItem = {
     id: `eco-log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     action: actionKey,
@@ -284,7 +292,7 @@ export function awardEcoPoints(actionKey, customPoints = null, metadata = {}) {
   const newStage = getTreeStage(newTotal)
   const leveledUp = newStage.level > oldStage.level
 
-  // Check for newly unlocked milestone rewards (e.g. 200, 500, 1000)
+  // Check for newly unlocked milestone rewards (e.g. 200, 500, 1000 pts)
   let unlockedRewards = []
   try {
     const rawClaimed = localStorage.getItem(LOCAL_CLAIMED_MILESTONES_KEY)
@@ -295,19 +303,21 @@ export function awardEcoPoints(actionKey, customPoints = null, metadata = {}) {
         // Unlock this milestone reward card
         const newReward = {
           id: `reward-ms-${ms.points}-${Date.now()}`,
-          code: generateMilestoneCode(ms.codePrefix),
+          code: generateMilestoneCode(ms.codePrefix || 'ECO-TREE'),
           discount: ms.discount,
           title: ms.title,
           description: ms.desc,
           milestonePoints: ms.points,
-          source: 'Eco-Tree Growth Milestone',
+          source: 'Living Eco-Tree Growth Milestone',
+          label: 'Demo Reward — Not Valid for Real Purchases',
           date: new Date().toLocaleDateString(undefined, {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
           }),
+          unlockedAt: new Date().toISOString(),
           timestamp: Date.now(),
-          badge: 'Growth Reward',
+          badge: 'Milestone Reward',
           isMilestone: true
         }
 

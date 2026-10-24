@@ -92,7 +92,7 @@ export default function LivingEcoTreeCard({
             </div>
           </div>
 
-          {/* Right: Score Display & Quiz CTA */}
+          {/* Right: Score Display & Rewards Link */}
           <div className="flex flex-col items-center md:items-end text-center md:text-right shrink-0">
             <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-emerald-100 p-4 shadow-sm min-w-[170px]">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
@@ -108,11 +108,14 @@ export default function LivingEcoTreeCard({
 
             <button
               type="button"
-              onClick={() => setCurrentView && setCurrentView('game')}
+              onClick={() => {
+                if (onOpenRewards) onOpenRewards()
+                else if (setCurrentView) setCurrentView('rewards')
+              }}
               className="mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-yellow-300" />
-              <span>Daily Quiz (+100 pts)</span>
+              <Gift className="w-4 h-4 text-emerald-100" />
+              <span>View Milestone Rewards</span>
             </button>
           </div>
         </div>
@@ -181,7 +184,7 @@ export default function LivingEcoTreeCard({
               className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-emerald-700 bg-gray-50 hover:bg-emerald-50 px-3 py-2 rounded-xl border border-gray-200 transition cursor-pointer"
             >
               <Info className="w-4 h-4 text-emerald-600" />
-              <span>{showHowItWorks ? 'Hide Point Rules' : 'How to Earn Eco-Points'}</span>
+              <span>{showHowItWorks ? 'Hide Activity Rules' : 'How to Earn Eco-Points'}</span>
             </button>
 
             <button
@@ -209,62 +212,49 @@ export default function LivingEcoTreeCard({
           </div>
         </div>
 
-        {/* Expandable Point Rules Guide */}
+        {/* Expandable Transaction & Activity Point Rules Guide */}
         {showHowItWorks && (
           <div className="mt-4 pt-4 border-t border-gray-100 animate-in fade-in duration-200">
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-              Circular Actions That Grow Your Tree:
+              Platform Transactions & Activities That Grow Your Tree:
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg">🎁</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xl">🎁</span>
                   <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg">
                     +50 pts
                   </span>
                 </div>
-                <p className="text-xs font-bold text-gray-900">Post / Give an Item</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Share unused furniture, books, electronics or clothes.
+                <p className="text-xs font-bold text-gray-900">Post / Give an Item (Free)</p>
+                <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                  Share unused furniture, clothes, books, plants, or household items for free with neighbors.
                 </p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-teal-50/70 border border-teal-100">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg">🤝</span>
+              <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xl">🤝</span>
                   <span className="text-xs font-black text-teal-700 bg-teal-100 px-2 py-0.5 rounded-lg">
                     +40 pts
                   </span>
                 </div>
-                <p className="text-xs font-bold text-gray-900">Complete an Exchange</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Handover an item or complete a requested exchange.
+                <p className="text-xs font-bold text-gray-900">Exchange or Resell / Paid Item</p>
+                <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                  List items for exchange, affordable resell, or complete handovers with community members.
                 </p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-cyan-50/70 border border-cyan-100">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg">♻️</span>
+              <div className="p-3.5 rounded-2xl bg-cyan-50/70 border border-cyan-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xl">♻️</span>
                   <span className="text-xs font-black text-cyan-700 bg-cyan-100 px-2 py-0.5 rounded-lg">
                     +20 pts
                   </span>
                 </div>
-                <p className="text-xs font-bold text-gray-900">Request or Disposal</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Post a community need or share recycling center info.
-                </p>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-100">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg">🧠</span>
-                  <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-lg">
-                    Up to +100
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-gray-900">Match the Material</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Daily mini-quiz: earn +20 bonus points per question.
+                <p className="text-xs font-bold text-gray-900">Post Request or Disposal Resource</p>
+                <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                  Post a community request for what you need or share recycling / disposal drop-off points.
                 </p>
               </div>
             </div>
@@ -275,10 +265,10 @@ export default function LivingEcoTreeCard({
         {history.length > 0 && (
           <div className="mt-4 pt-4 border-t border-gray-100">
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-              Recent Eco-Activity
+              Recent Transaction & Point History
             </span>
             <div className="flex flex-wrap gap-2">
-              {history.slice(0, 3).map((item) => (
+              {history.slice(0, 4).map((item) => (
                 <div
                   key={item.id}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700"

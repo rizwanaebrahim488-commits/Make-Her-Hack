@@ -235,17 +235,25 @@ export default function AddResourcePage({ setCurrentView }) {
         }
       }
 
-      // Award Eco-Points for community activity
+      // Award Eco-Points for platform transactions & activities
       try {
         if (isRequest || type === 'disposal') {
+          // Post a Request or Share Disposal/Recycling Resource: +20 Eco-Points
           awardEcoPoints('POST_REQUEST_OR_DISPOSAL', 20, {
             userId: user.id,
             details: `Posted community request: "${form.title.trim()}"`
           })
-        } else {
-          awardEcoPoints('POST_ITEM', 50, {
+        } else if (!form.is_free && parseFloat(form.price) > 0) {
+          // Resell / Paid Item or Exchange: +40 Eco-Points
+          awardEcoPoints('COMPLETE_EXCHANGE_OR_RESALE', 40, {
             userId: user.id,
-            details: `Gave resource: "${form.title.trim()}"`
+            details: `Listed resell/exchange item: "${form.title.trim()}"`
+          })
+        } else {
+          // Post / Give an Item (Free): +50 Eco-Points
+          awardEcoPoints('POST_FREE_ITEM', 50, {
+            userId: user.id,
+            details: `Gave free resource: "${form.title.trim()}"`
           })
         }
       } catch (pointErr) {

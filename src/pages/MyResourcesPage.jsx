@@ -5,6 +5,7 @@ import {
   updateResource,
   deleteResource,
 } from '../lib/supabase'
+import { awardEcoPoints } from '../lib/ecoPoints'
 import {
   ArrowLeft,
   Package,
@@ -183,6 +184,23 @@ export default function MyResourcesPage({ setCurrentView, onOpenResourceDetails,
       setResources((prev) =>
         prev.map((r) => (r.id === resource.id ? { ...r, status: nextStatus } : r))
       )
+    } catch (err) {
+      setError(err.message || 'Failed to update status.')
+    }
+  }
+
+  const handleMarkCompleted = async (resource) => {
+    try {
+      await updateResource(resource.id, { status: 'completed' })
+      setResources((prev) =>
+        prev.map((r) => (r.id === resource.id ? { ...r, status: 'completed' } : r))
+      )
+      awardEcoPoints('COMPLETE_EXCHANGE', 40, {
+        userId: user?.id,
+        details: `Completed exchange for resource: "${resource.title}"`
+      })
+      setSuccessMessage(`"${resource.title}" marked as completed! +40 Eco-Points earned! 🤝`)
+      setTimeout(() => setSuccessMessage(null), 3500)
     } catch (err) {
       setError(err.message || 'Failed to update status.')
     }
@@ -370,6 +388,19 @@ export default function MyResourcesPage({ setCurrentView, onOpenResourceDetails,
                           <MessageCircle className="w-3.5 h-3.5" />
                           <span>Messages</span>
                         </button>
+
+                        {/* MARK COMPLETED / EXCHANGED BUTTON */}
+                        {r.status !== 'completed' && r.status !== 'deleted' && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkCompleted(r)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition cursor-pointer"
+                            title="Mark transaction completed and award +40 Eco-Points"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Mark Completed (+40 pts)</span>
+                          </button>
+                        )}
 
                         {/* Toggle Status */}
                         {r.status !== 'expired' && (
