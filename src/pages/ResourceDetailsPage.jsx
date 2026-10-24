@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
   getResourceById,
@@ -8,8 +8,12 @@ import {
   getRequestsByRequester,
   updateRequestStatus,
   sendMessage,
+  getReviewsForProvider,
+  getUserReviewForResource,
 } from '../lib/supabase'
 import ResourceMap from '../components/ResourceMap'
+import RateProviderModal from '../components/RateProviderModal'
+import ProviderProfileModal from '../components/ProviderProfileModal'
 import {
   ArrowLeft,
   Heart,
@@ -30,6 +34,9 @@ import {
   Edit,
   ChevronLeft,
   ChevronRight,
+  Star,
+  ShieldCheck,
+  CheckCircle,
 } from 'lucide-react'
 
 const TYPE_LABELS = {
@@ -80,6 +87,48 @@ export default function ResourceDetailsPage({
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [calculatedDistance, setCalculatedDistance] = useState(null)
 
+  // Review & Rating Modal states
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [providerReviews, setProviderReviews] = useState([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
+  const [myReview, setMyReview] = useState(null)
+
+  // Safe provider helpers
+  const providerId = resource?.provider?.id || resource?.provider_id || null
+  const isProvider = Boolean(
+    user && resource && (providerId === user.id || resource?.provider?.id === user.id)
+  )
+
+  const loadReviews = useCallback(async () => {
+    if (!providerId) return
+    setLoadingReviews(true)
+    try {
+      const { data } = await getReviewsForProvider(providerId)
+      setProviderReviews(data || [])
+      if (user && resource?.id) {
+        const { data: rev } = await getUserReviewForResource(user.id, resource.id)
+        setMyReview(rev)
+      }
+    } catch (err) {
+      console.warn('Failed to load reviews:', err)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }, [providerId, user, resource?.id])
+
+  useEffect(() => {
+    loadReviews()
+
+    const handleGlobalReview = (e) => {
+      if (e.detail && (e.detail.providerId === providerId || e.detail.resourceId === resource?.id)) {
+        loadReviews()
+      }
+    }
+    window.addEventListener('reloop-review-submitted', handleGlobalReview)
+    return () => window.removeEventListener('reloop-review-submitted', handleGlobalReview)
+  }, [providerId, resource?.id, loadReviews])
+
   // Keep resource updated if initialResource prop changes
   useEffect(() => {
     if (initialResource) {
@@ -128,11 +177,6 @@ export default function ResourceDetailsPage({
     }
   }, [initialResource?.id, user?.id])
 
-  // Safe provider helpers
-  const providerId = resource?.provider?.id || resource?.provider_id || null
-  const isProvider = Boolean(
-    user && resource && (providerId === user.id || resource?.provider?.id === user.id)
-  )
   const providerName =
     resource?.provider?.full_name ||
     resource?.provider?.name ||
@@ -144,7 +188,27 @@ export default function ResourceDetailsPage({
     `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(providerName)}`
   const memberSince = resource?.provider?.created_at
     ? new Date(resource.provider.created_at).getFullYear()
-    : null
+    : (resource?.provider?.member_since || '2023')
+
+  const providerAvgRating = Number(resource?.provider?.avg_rating || 4.8).toFixed(1)
+  const providerTotalReviews = Number(resource?.provider?.total_reviews || providerReviews.length || 0)
+  const isProviderVerified = Boolean(
+    resource?.provider?.is_verified ?? (Number(providerAvgRating) >= 4.5 && providerTotalReviews >= 5)
+  )
+
+  const handleReviewSubmitted = ({ review, newStats }) => {
+    setMyReview(review)
+    loadReviews()
+    if (newStats) {
+      setResource((prev) => ({
+        ...prev,
+        provider: {
+          ...(prev?.provider || {}),
+          ...newStats
+        }
+      }))
+    }
+  }
 
   const handleLike = async () => {
     requireAuth(async () => {
@@ -748,37 +812,252 @@ export default function ResourceDetailsPage({
           />
         </div>
 
-        {/* ================= PROVIDER PROFILE CARD ================= */}
+        {/* ================= PROVIDER PROFILE & TRUST CARD ================= */}
         <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img
-                src={providerAvatar}
-                alt={providerName}
-                className="w-12 h-12 rounded-full object-cover border-2 border-emerald-100 shadow-2xs"
-              />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100">
+            <div className="flex items-center gap-3.5">
+              <div 
+                className="relative cursor-pointer group/avatar"
+                onClick={() => setIsProfileModalOpen(true)}
+                title="View provider profile"
+              >
+                <img
+                  src={providerAvatar}
+                  alt={providerName}
+                  className="w-14 h-14 rounded-full object-cover border-2 border-emerald-100 shadow-sm group-hover/avatar:ring-2 group-hover/avatar:ring-emerald-400 transition"
+                />
+                {isProviderVerified && (
+                  <span 
+                    className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold shadow-xs" 
+                    title="Verified Community Member"
+                  >
+                    ✓
+                  </span>
+                )}
+              </div>
+
               <div>
-                <p className="text-sm font-bold text-gray-900 leading-tight">
-                  {providerName} {isProvider ? '(You)' : ''}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {memberSince ? `Community Member since ${memberSince}` : 'Verified ReLoop Provider'}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="text-base sm:text-lg font-bold text-gray-900 leading-tight hover:text-emerald-700 cursor-pointer transition"
+                  >
+                    {providerName} {isProvider ? '(You)' : ''}
+                  </h3>
+                  {isProviderVerified && (
+                    <span 
+                      title="Verified Community Member (4.5+ Rating & 5+ Reviews)"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Verified Member</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
+                  <span className="inline-flex items-center gap-1 text-amber-600 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                    <span>{providerAvgRating}</span>
+                  </span>
+                  <span className="text-gray-400">
+                    ({providerTotalReviews} {providerTotalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
+                  <span className="text-gray-300">•</span>
+                  <span>{resource?.provider?.badge || 'Active Giver'}</span>
+                  <span className="text-gray-300">•</span>
+                  <span>Member since {memberSince}</span>
+                </div>
               </div>
             </div>
 
-            {/* Quick Chat Shortcut */}
+            {/* Provider Actions */}
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 text-gray-500" />
+                <span>View Profile</span>
+              </button>
+
+              {!isProvider && (
+                <button
+                  type="button"
+                  onClick={() => requireAuth(() => setIsRateModalOpen(true))}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100/80 text-amber-800 text-xs font-bold border border-amber-200 transition cursor-pointer"
+                >
+                  <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                  <span>{myReview ? 'Edit Review' : 'Rate Provider'}</span>
+                </button>
+              )}
+
+              {!isProvider && (
+                <button
+                  type="button"
+                  onClick={handleOpenChat}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Message</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Verified Explainer */}
+          {isProviderVerified && (
+            <div className="mt-4 pt-3 flex items-center gap-2 text-[11px] text-emerald-800 bg-emerald-50/70 px-3.5 py-2 rounded-xl border border-emerald-100">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Trust Verified:</strong> {providerName} has maintained consistent 4.5+ star ratings across verified circular exchanges.
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ================= COMMUNITY REVIEWS & FEEDBACK ================= */}
+        <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100">
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+                <span>Community Reviews & Ratings ({providerReviews.length})</span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Feedback from members who have exchanged resources with {providerName}
+              </p>
+            </div>
+
             {!isProvider && (
               <button
                 type="button"
-                onClick={handleOpenChat}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold transition cursor-pointer"
+                onClick={() => requireAuth(() => setIsRateModalOpen(true))}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition cursor-pointer self-start sm:self-auto"
               >
-                <Mail className="w-3.5 h-3.5" />
-                <span>Message</span>
+                <Star className="w-3.5 h-3.5 fill-emerald-600" />
+                <span>{myReview ? 'Edit Your Review' : 'Write a Review'}</span>
               </button>
             )}
           </div>
+
+          {/* User's Own Review Banner */}
+          {myReview && (
+            <div className="mb-5 p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-amber-900">Your Review for this Resource:</span>
+                  <div className="flex items-center text-amber-500">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-3.5 h-3.5 ${s <= myReview.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {myReview.comment && (
+                  <p className="text-xs text-amber-950/80 italic mt-1 leading-relaxed">
+                    &ldquo;{myReview.comment}&rdquo;
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRateModalOpen(true)}
+                className="text-xs font-bold text-amber-800 hover:text-amber-900 underline self-start sm:self-auto cursor-pointer"
+              >
+                Edit Review
+              </button>
+            </div>
+          )}
+
+          {/* Review List */}
+          {loadingReviews ? (
+            <div className="space-y-3 py-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="animate-pulse bg-gray-100 rounded-2xl p-4 h-18" />
+              ))}
+            </div>
+          ) : providerReviews.length === 0 ? (
+            <div className="py-8 text-center bg-gray-50 rounded-2xl border border-gray-100 p-6">
+              <Sparkles className="w-7 h-7 text-emerald-500 mx-auto mb-2 opacity-80" />
+              <p className="text-xs sm:text-sm font-bold text-gray-800">No community reviews yet</p>
+              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                Completed an exchange or claimed a resource? Be the first to leave feedback and help build community trust!
+              </p>
+              {!isProvider && (
+                <button
+                  type="button"
+                  onClick={() => requireAuth(() => setIsRateModalOpen(true))}
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  <Star className="w-3.5 h-3.5 fill-white" />
+                  <span>Leave First Review</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {providerReviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 hover:border-emerald-100 transition"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={rev.reviewer?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(rev.reviewer?.full_name || 'Reviewer')}`}
+                        alt={rev.reviewer?.full_name || 'Reviewer'}
+                        className="w-8 h-8 rounded-full object-cover border border-emerald-100 shadow-2xs shrink-0"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">
+                          {rev.reviewer?.full_name || 'Community Member'}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {rev.created_at
+                            ? new Date(rev.created_at).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : 'Verified Exchange'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Star Display */}
+                    <div className="flex items-center gap-0.5 text-amber-400 shrink-0">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= Number(rev.rating)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {rev.resource_title && (
+                    <div className="inline-block px-2 py-0.5 mb-1.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
+                      Exchange: {rev.resource_title}
+                    </div>
+                  )}
+
+                  {rev.comment && (
+                    <p className="text-xs text-gray-700 leading-relaxed italic">
+                      &ldquo;{rev.comment}&rdquo;
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ================= REQUEST STATUS (IF REQUESTER) ================= */}
@@ -947,11 +1226,41 @@ export default function ResourceDetailsPage({
         )}
 
         {messageSent && (
-          <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>Message sent successfully to {providerName}!</span>
+          <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>Message sent successfully to {providerName}!</span>
+            </div>
+            {!isProvider && (
+              <button
+                type="button"
+                onClick={() => requireAuth(() => setIsRateModalOpen(true))}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs transition cursor-pointer"
+              >
+                Rate Provider
+              </button>
+            )}
           </div>
         )}
+
+        {/* ================= RATE PROVIDER MODAL ================= */}
+        <RateProviderModal
+          isOpen={isRateModalOpen}
+          onClose={() => setIsRateModalOpen(false)}
+          resource={resource}
+          provider={resource?.provider}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+
+        {/* ================= PROVIDER PROFILE & REVIEWS MODAL ================= */}
+        <ProviderProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          providerId={providerId}
+          initialProvider={resource?.provider}
+          onOpenRateModal={() => requireAuth(() => setIsRateModalOpen(true))}
+          onOpenChat={handleOpenChat}
+        />
       </div>
     </div>
   )

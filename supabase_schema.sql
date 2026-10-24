@@ -237,3 +237,103 @@ create policy "Profile images are publicly readable"
 drop policy if exists "Authenticated users can upload profile images" on storage.objects;
 create policy "Authenticated users can upload profile images"
   on storage.objects for insert with check (bucket_id = 'profile-images');
+
+-- ====================================================================
+-- 5) REVIEWS, PROVIDER RATINGS & VERIFICATION SCHEMA
+-- ====================================================================
+
+-- 5.1 Add Rating & Verification Columns to Profiles Table
+alter table public.profiles 
+  add column if not exists avg_rating numeric(3,2) default 0.0,
+  add column if not exists total_reviews integer default 0,
+  add column if not exists is_verified boolean default false;
+
+-- 5.2 Create Reviews Table
+create table if not exists public.reviews (
+  id uuid default gen_random_uuid() primary key,
+  reviewer_id uuid references public.profiles(id) on delete cascade not null,
+  provider_id uuid references public.profiles(id) on delete cascade not null,
+  resource_id uuid references public.resources(id) on delete cascade not null,
+  rating integer not null check (rating >= 1 and rating <= 5),
+  comment text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  constraint unique_reviewer_resource unique(reviewer_id, resource_id),
+  constraint check_cannot_rate_self check (reviewer_id <> provider_id)
+);
+
+-- Performance Indexes
+create index if not exists idx_reviews_provider_id on public.reviews(provider_id);
+create index if not exists idx_reviews_resource_id on public.reviews(resource_id);
+create index if not exists idx_reviews_reviewer_id on public.reviews(reviewer_id);
+
+-- 5.3 Trigger Function to Automatically Recalculate Provider Rating & Verification
+create or replace function public.recalculate_provider_rating()
+returns trigger as $$
+declare
+  target_provider_id uuid;
+  calc_avg numeric(3,2);
+  calc_count integer;
+begin
+  if (TG_OP = 'DELETE') then
+    target_provider_id := OLD.provider_id;
+  else
+    target_provider_id := NEW.provider_id;
+  end if;
+
+  -- Calculate average rating and total count across all received reviews
+  select 
+    coalesce(round(avg(rating)::numeric, 2), 0.0),
+    count(*)
+  into calc_avg, calc_count
+  from public.reviews
+  where provider_id = target_provider_id;
+
+  -- Update provider's profile with recalculated rating and verification
+  update public.profiles
+  set 
+    avg_rating = calc_avg,
+    total_reviews = calc_count,
+    is_verified = (calc_avg >= 4.5 and calc_count >= 5),
+    updated_at = now()
+  where id = target_provider_id;
+
+  return null;
+end;
+$$ language plpgsql security definer;
+
+-- Trigger attached to reviews table
+drop trigger if exists trg_recalculate_provider_rating on public.reviews;
+create trigger trg_recalculate_provider_rating
+  after insert or update or delete on public.reviews
+  for each row execute procedure public.recalculate_provider_rating();
+
+-- 5.4 Row Level Security for Reviews Table
+alter table public.reviews enable row level security;
+
+-- Everyone can read reviews
+drop policy if exists "Reviews are viewable by everyone" on public.reviews;
+create policy "Reviews are viewable by everyone"
+  on public.reviews for select using (true);
+
+-- Authenticated users can insert reviews for resources they did not provide
+drop policy if exists "Authenticated users can submit reviews" on public.reviews;
+create policy "Authenticated users can submit reviews"
+  on public.reviews for insert
+  with check (
+    auth.uid() = reviewer_id and
+    reviewer_id <> provider_id
+  );
+
+-- Reviewers can update their own review
+drop policy if exists "Reviewers can update own reviews" on public.reviews;
+create policy "Reviewers can update own reviews"
+  on public.reviews for update
+  using (auth.uid() = reviewer_id);
+
+-- Reviewers can delete their own review
+drop policy if exists "Reviewers can delete own reviews" on public.reviews;
+create policy "Reviewers can delete own reviews"
+  on public.reviews for delete
+  using (auth.uid() = reviewer_id);
+

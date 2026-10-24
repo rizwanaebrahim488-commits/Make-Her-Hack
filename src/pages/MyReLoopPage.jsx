@@ -7,7 +7,7 @@ import {
   getUserWishlist,
 } from '../lib/supabase'
 import {
-  Bell, MessageCircle, Package, ClipboardList, Heart, Activity, MapPin, Sparkles, Calendar, Users
+  Bell, MessageCircle, Package, ClipboardList, Heart, Activity, MapPin, Sparkles, Calendar, Users, Star, ShieldCheck
 } from 'lucide-react'
 import AccountLayout from '../components/AccountLayout'
 
@@ -118,19 +118,33 @@ export default function MyReLoopPage({ setCurrentView }) {
               />
             </div>
             <div className="flex-1">
-              <div className="flex items-baseline gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                   {displayName}
                 </h2>
+                {Boolean(profile?.is_verified ?? (Number(profile?.avg_rating || 5.0) >= 4.5 && Number(profile?.total_reviews || 0) >= 5)) && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Verified Member</span>
+                  </span>
+                )}
                 {memberSince && (
                   <span className="text-sm text-gray-500 font-medium">
                     • Member since {memberSince}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <MapPin className="w-3 h-3" />
-                <span>{location}</span>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                <div className="flex items-center gap-1 text-amber-600 font-bold">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                  <span>{Number(profile?.avg_rating || 5.0).toFixed(1)} / 5.0</span>
+                  <span className="text-gray-400 font-normal">({profile?.total_reviews || 0} reviews)</span>
+                </div>
+                <span>•</span>
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  <span>{location}</span>
+                </div>
               </div>
             </div>
             <div className="self-start sm:self-center">

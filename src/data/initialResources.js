@@ -604,3 +604,145 @@ export const INITIAL_RESOURCES = [
     }
   }
 ];
+
+// Baseline Provider Rating & Trust Metrics
+export const PROVIDER_RATINGS_MAP = {
+  'usr-1': { avg_rating: 4.9, total_reviews: 14, is_verified: true, member_since: '2023' },
+  'usr-2': { avg_rating: 4.8, total_reviews: 9, is_verified: true, member_since: '2023' },
+  'usr-3': { avg_rating: 4.9, total_reviews: 12, is_verified: true, member_since: '2024' },
+  'usr-4': { avg_rating: 4.7, total_reviews: 7, is_verified: true, member_since: '2023' },
+  'usr-5': { avg_rating: 5.0, total_reviews: 6, is_verified: true, member_since: '2024' },
+  'usr-6': { avg_rating: 4.6, total_reviews: 5, is_verified: true, member_since: '2023' },
+  'usr-7': { avg_rating: 4.8, total_reviews: 11, is_verified: true, member_since: '2023' },
+  'usr-8': { avg_rating: 4.7, total_reviews: 8, is_verified: true, member_since: '2024' },
+  'usr-9': { avg_rating: 4.9, total_reviews: 15, is_verified: true, member_since: '2023' },
+  'usr-10': { avg_rating: 4.8, total_reviews: 10, is_verified: true, member_since: '2024' },
+  'usr-11': { avg_rating: 4.7, total_reviews: 6, is_verified: true, member_since: '2023' },
+  'usr-12': { avg_rating: 4.9, total_reviews: 13, is_verified: true, member_since: '2023' },
+};
+
+// Seed Community Reviews for demonstration and initial presentation
+export const INITIAL_REVIEWS = [
+  {
+    id: 'rev-1',
+    provider_id: 'usr-1',
+    reviewer_id: 'usr-2',
+    resource_id: 'item-1',
+    resource_title: 'Solid Wood Study Table',
+    rating: 5,
+    comment: 'Super polite and helpful! The study table was spotless and handover was quick at Perumbavoor. Highly recommend this provider.',
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    reviewer: {
+      id: 'usr-2',
+      full_name: 'Rahul Mohan',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    }
+  },
+  {
+    id: 'rev-2',
+    provider_id: 'usr-1',
+    reviewer_id: 'usr-3',
+    resource_id: 'item-6',
+    resource_title: 'Skybags Waterproof School Backpack',
+    rating: 5,
+    comment: 'Aiswarya is a true community hero. The school bag was freshly washed and perfectly intact. Circular living in action!',
+    created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
+    reviewer: {
+      id: 'usr-3',
+      full_name: 'Fathima Noor',
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+    }
+  },
+  {
+    id: 'rev-3',
+    provider_id: 'usr-1',
+    reviewer_id: 'usr-5',
+    resource_id: 'plant-1',
+    resource_title: 'Aloe Vera & Snake Plants',
+    rating: 4,
+    comment: 'Healthy saplings with potting soil included. Great tips on plant care as well.',
+    created_at: new Date(Date.now() - 86400000 * 14).toISOString(),
+    reviewer: {
+      id: 'usr-5',
+      full_name: 'Meera Thomas',
+      avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+    }
+  },
+  {
+    id: 'rev-4',
+    provider_id: 'usr-2',
+    reviewer_id: 'usr-4',
+    resource_id: 'item-2',
+    resource_title: 'HP 15s Core i3 Laptop',
+    rating: 5,
+    comment: 'Laptop was clean with original adapter. Battery timing was exact as described. Great exchange!',
+    created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+    reviewer: {
+      id: 'usr-4',
+      full_name: 'Kiran Dev',
+      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
+    }
+  },
+  {
+    id: 'rev-5',
+    provider_id: 'usr-3',
+    reviewer_id: 'usr-1',
+    resource_id: 'item-3',
+    resource_title: 'Computer Science & Engineering Books',
+    rating: 5,
+    comment: 'Books were like brand new. Wonderful contributor to student education!',
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    reviewer: {
+      id: 'usr-1',
+      full_name: 'Aiswarya S.',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    }
+  },
+  {
+    id: 'rev-6',
+    provider_id: 'usr-4',
+    reviewer_id: 'usr-6',
+    resource_id: 'item-4',
+    resource_title: 'Ergonomic Mesh Office Chair',
+    rating: 5,
+    comment: 'Very comfortable chair, exactly what I needed for my study desk. Thanks Kiran!',
+    created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
+    reviewer: {
+      id: 'usr-6',
+      full_name: 'Nikhil Paul',
+      avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&q=80',
+    }
+  },
+  {
+    id: 'rev-7',
+    provider_id: 'usr-5',
+    reviewer_id: 'usr-2',
+    resource_id: 'item-5',
+    resource_title: 'Philips 750W Mixer Grinder',
+    rating: 5,
+    comment: 'Works smoothly! Very appreciative of Meera for sharing high quality appliances.',
+    created_at: new Date(Date.now() - 86400000 * 9).toISOString(),
+    reviewer: {
+      id: 'usr-2',
+      full_name: 'Rahul Mohan',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    }
+  }
+];
+
+// Enrich INITIAL_RESOURCES with default provider stats if not already attached
+INITIAL_RESOURCES.forEach(item => {
+  if (item.provider) {
+    const stats = PROVIDER_RATINGS_MAP[item.provider.id] || {
+      avg_rating: 4.8,
+      total_reviews: 8,
+      is_verified: true,
+      member_since: '2023'
+    };
+    item.provider.avg_rating = item.provider.avg_rating ?? stats.avg_rating;
+    item.provider.total_reviews = item.provider.total_reviews ?? stats.total_reviews;
+    item.provider.is_verified = item.provider.is_verified ?? stats.is_verified;
+    item.provider.member_since = item.provider.member_since ?? stats.member_since;
+  }
+});
+

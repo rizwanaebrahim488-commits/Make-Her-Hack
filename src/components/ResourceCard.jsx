@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Heart, MapPin, ArrowRight } from 'lucide-react'
+import { Heart, MapPin, ArrowRight, Star, ShieldCheck } from 'lucide-react'
 
 // Badge styling helper based on resource status / type
 function getBadgeStyles(status, price) {
@@ -145,19 +145,52 @@ export default function ResourceCard({ resource, onViewDetails }) {
 
         {/* Footer: Requester info + Offer to Help Button */}
         <div className="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <img
-              src={resource.provider?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resource.provider?.full_name || 'Requester')}`}
-              alt={resource.provider?.full_name || 'Requester'}
-              className="w-7 h-7 rounded-full object-cover border border-emerald-100 shrink-0"
-            />
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              window.dispatchEvent(new CustomEvent('reloop-open-provider-profile', { detail: resource.provider }))
+            }}
+            className="flex items-center gap-2 min-w-0 cursor-pointer group/provider hover:opacity-90"
+            title={`View ${resource.provider?.full_name || 'Requester'}'s community profile & rating`}
+          >
+            <div className="relative shrink-0">
+              <img
+                src={resource.provider?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resource.provider?.full_name || 'Requester')}`}
+                alt={resource.provider?.full_name || 'Requester'}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-emerald-100 shrink-0"
+              />
+              {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[8px] text-white font-bold" title="Verified Community Member">
+                  ✓
+                </span>
+              )}
+            </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-800 truncate">
-                {resource.provider?.full_name || 'Community Member'}
-              </p>
-              <p className="text-[10px] text-gray-500 font-medium">
-                Requester
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-semibold text-gray-800 truncate group-hover/provider:text-emerald-700 transition-colors">
+                  {resource.provider?.full_name || 'Community Member'}
+                </p>
+                {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
+                  <span 
+                    title="Verified Community Member"
+                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0"
+                  >
+                    <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                    <span className="hidden sm:inline">Verified</span>
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium leading-none mt-0.5">
+                <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold">
+                  <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-500" />
+                  <span>{Number(resource.provider?.avg_rating || 4.8).toFixed(1)}</span>
+                </span>
+                {Number(resource.provider?.total_reviews || 0) > 0 && (
+                  <span className="text-gray-400 text-[10px]">({resource.provider.total_reviews})</span>
+                )}
+                <span className="text-gray-300">•</span>
+                <span className="text-[10px] text-gray-500 font-medium">Requester</span>
+              </div>
             </div>
           </div>
 
@@ -271,22 +304,57 @@ export default function ResourceCard({ resource, onViewDetails }) {
 
         {/* Card Footer: Provider Info + View Details */}
         <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between gap-2">
-          {/* Provider */}
-          <div className="flex items-center gap-2 min-w-0">
-            <img
-              src={resource.provider?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resource.provider?.full_name || 'ReLoop')}`}
-              alt={resource.provider?.full_name || 'Provider'}
-              className="w-7 h-7 rounded-full object-cover border border-emerald-100 shrink-0"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-800 truncate">
-                {resource.provider?.full_name || 'Community Member'}
-              </p>
-              {resource.provider?.badge && (
-                <p className="text-[10px] text-emerald-600 font-medium truncate">
-                  {resource.provider.badge}
-                </p>
+          {/* Provider Snippet */}
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              window.dispatchEvent(new CustomEvent('reloop-open-provider-profile', { detail: resource.provider }))
+            }}
+            className="flex items-center gap-2 min-w-0 cursor-pointer group/provider hover:opacity-90"
+            title={`View ${resource.provider?.full_name || 'Provider'}'s profile & community rating`}
+          >
+            <div className="relative shrink-0">
+              <img
+                src={resource.provider?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resource.provider?.full_name || 'ReLoop')}`}
+                alt={resource.provider?.full_name || 'Provider'}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-emerald-100 shrink-0"
+              />
+              {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[8px] text-white font-bold" title="Verified Community Member">
+                  ✓
+                </span>
               )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-semibold text-gray-800 truncate group-hover/provider:text-emerald-700 transition-colors">
+                  {resource.provider?.full_name || 'Community Member'}
+                </p>
+                {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
+                  <span 
+                    title="Verified Community Member (4.5+ Rating & 5+ Reviews)"
+                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0"
+                  >
+                    <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                    <span className="hidden sm:inline">Verified</span>
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium leading-none mt-0.5">
+                <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold">
+                  <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-500" />
+                  <span>{Number(resource.provider?.avg_rating || 4.8).toFixed(1)}</span>
+                </span>
+                {Number(resource.provider?.total_reviews || 0) > 0 && (
+                  <span className="text-gray-400 text-[10px]">({resource.provider.total_reviews})</span>
+                )}
+                {resource.provider?.badge && (
+                  <>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-[10px] text-emerald-600 font-medium truncate max-w-[90px]">{resource.provider.badge}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

@@ -22,6 +22,8 @@ import AddResourcePage from './pages/AddResourcePage'
 import MatchTheMaterialGame from './pages/MatchTheMaterialGame'
 import MyRewardsPage from './pages/MyRewardsPage'
 import MobileBottomNav from './components/MobileBottomNav'
+import ProviderProfileModal from './components/ProviderProfileModal'
+import RateProviderModal from './components/RateProviderModal'
 
 function AppContent() {
   const [currentView, setCurrentView] = useState('explore')
@@ -29,6 +31,8 @@ function AppContent() {
   const [previousView, setPreviousView] = useState('explore')
   const [chat, setChat] = useState(null)
   const [exploreFilter, setExploreFilter] = useState({ category: 'all', search: '' })
+  const [globalProfileModalProvider, setGlobalProfileModalProvider] = useState(null)
+  const [globalRateModalTarget, setGlobalRateModalTarget] = useState(null)
 
   const handleNavigateToExplore = ({ category = 'all', search = '' } = {}) => {
     setExploreFilter({ category: category || 'all', search: search || '' })
@@ -57,6 +61,17 @@ function AppContent() {
     window.addEventListener('reloop-open-resource', handler)
     return () => window.removeEventListener('reloop-open-resource', handler)
   }, [currentView, previousView])
+
+  // Listen for provider profile modal triggers from any resource card
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail) {
+        setGlobalProfileModalProvider(e.detail)
+      }
+    }
+    window.addEventListener('reloop-open-provider-profile', handler)
+    return () => window.removeEventListener('reloop-open-provider-profile', handler)
+  }, [])
 
   const handleOpenChat = ({ resourceId, otherUserId, otherName, resourceTitle }) => {
     setChat({ resourceId, otherUserId, otherName, resourceTitle })
@@ -204,6 +219,26 @@ function AppContent() {
 
       {/* Action-Based Authentication Modal */}
       <AuthModal />
+
+      {/* Global Provider Profile & Reviews Modal */}
+      <ProviderProfileModal
+        isOpen={Boolean(globalProfileModalProvider)}
+        onClose={() => setGlobalProfileModalProvider(null)}
+        providerId={globalProfileModalProvider?.id}
+        initialProvider={globalProfileModalProvider}
+        onOpenRateModal={(prov) => {
+          setGlobalRateModalTarget({ provider: prov })
+        }}
+        onOpenChat={handleOpenChat}
+      />
+
+      {/* Global Rate Provider Modal */}
+      <RateProviderModal
+        isOpen={Boolean(globalRateModalTarget)}
+        onClose={() => setGlobalRateModalTarget(null)}
+        resource={globalRateModalTarget?.resource}
+        provider={globalRateModalTarget?.provider}
+      />
     </div>
   )
 }

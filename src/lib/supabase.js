@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { INITIAL_RESOURCES } from '../data/initialResources'
+import { INITIAL_RESOURCES, PROVIDER_RATINGS_MAP, INITIAL_REVIEWS } from '../data/initialResources'
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -33,6 +33,74 @@ export const isLiveBackendAvailable = () => Boolean(supabase)
 /* ===================== LOCAL STORAGE RESILIENCE HELPERS ===================== */
 
 const LOCAL_RESOURCES_KEY = 'reloop_custom_resources'
+const LOCAL_REVIEWS_KEY = 'reloop_custom_reviews'
+const LOCAL_PROVIDER_STATS_KEY = 'reloop_provider_stats'
+
+export function getLocalReviews() {
+  try {
+    const raw = localStorage.getItem(LOCAL_REVIEWS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (e) {
+    console.warn('Failed to parse local reviews:', e)
+    return []
+  }
+}
+
+export function saveLocalReview(review) {
+  try {
+    const existing = getLocalReviews()
+    const updated = [
+      review,
+      ...existing.filter((r) => !(r.reviewer_id === review.reviewer_id && r.resource_id === review.resource_id))
+    ]
+    localStorage.setItem(LOCAL_REVIEWS_KEY, JSON.stringify(updated))
+    return review
+  } catch (e) {
+    console.warn('Failed to save local review:', e)
+    return review
+  }
+}
+
+export function getLocalProviderStats(providerId) {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROVIDER_STATS_KEY)
+    const map = raw ? JSON.parse(raw) : {}
+    return map[providerId] || null
+  } catch (e) {
+    return null
+  }
+}
+
+export function saveLocalProviderStats(providerId, stats) {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROVIDER_STATS_KEY)
+    const map = raw ? JSON.parse(raw) : {}
+    map[providerId] = { ...(map[providerId] || {}), ...stats }
+    localStorage.setItem(LOCAL_PROVIDER_STATS_KEY, JSON.stringify(map))
+  } catch (e) {
+    console.warn('Failed to save local provider stats:', e)
+  }
+}
+
+export function attachProviderRating(provider, providerId) {
+  const pid = provider?.id || providerId
+  if (!pid && !provider) return provider
+
+  const localStats = getLocalProviderStats(pid)
+  const seedStats = PROVIDER_RATINGS_MAP ? PROVIDER_RATINGS_MAP[pid] : null
+
+  const avg = localStats?.avg_rating ?? provider?.avg_rating ?? seedStats?.avg_rating ?? 4.8
+  const total = localStats?.total_reviews ?? provider?.total_reviews ?? seedStats?.total_reviews ?? 7
+  const verified = localStats?.is_verified ?? provider?.is_verified ?? seedStats?.is_verified ?? (Number(avg) >= 4.5 && Number(total) >= 5)
+
+  return {
+    ...(provider || {}),
+    id: pid,
+    avg_rating: Number(Number(avg).toFixed(1)),
+    total_reviews: Number(total),
+    is_verified: Boolean(verified),
+  }
+}
 
 export function getLocalCustomResources() {
   try {
@@ -209,7 +277,10 @@ export async function getResources({
             id,
             full_name,
             avatar_url,
-            badge
+            badge,
+            avg_rating,
+            total_reviews,
+            is_verified
           )
         `)
         .neq('status', 'deleted')
@@ -261,6 +332,12 @@ export async function getResources({
     const uniqueLocals = localItems.filter((x) => !existingIds.has(x.id))
     combined = [...uniqueLocals, ...combined]
   }
+
+  // Attach enriched provider rating & trust metrics to all resources
+  combined = combined.map(item => ({
+    ...item,
+    provider: attachProviderRating(item.provider, item.provider_id)
+  }))
 
   // Process time-sensitive expirations
   await processExpiredResources(combined)
@@ -324,11 +401,27 @@ export async function getResourceById(resourceId) {
   // 1. Check local custom items first
   const localItems = getLocalCustomResources()
   const localMatch = localItems.find((x) => x.id === resourceId)
-  if (localMatch) return { data: localMatch, error: null }
+  if (localMatch) {
+    return {
+      data: {
+        ...localMatch,
+        provider: attachProviderRating(localMatch.provider, localMatch.provider_id)
+      },
+      error: null
+    }
+  }
 
   // 2. Check initial seed resources next
   const seedMatch = INITIAL_RESOURCES.find((x) => x.id === resourceId)
-  if (seedMatch) return { data: seedMatch, error: null }
+  if (seedMatch) {
+    return {
+      data: {
+        ...seedMatch,
+        provider: attachProviderRating(seedMatch.provider, seedMatch.provider?.id)
+      },
+      error: null
+    }
+  }
 
   // 3. Query Supabase
   if (supabase) {
@@ -359,11 +452,14 @@ export async function getResourceById(resourceId) {
           image_urls,
           created_at,
           updated_at,
-          provider:profiles ( id, full_name, email, avatar_url, location )
+          provider:profiles ( id, full_name, email, avatar_url, location, badge, avg_rating, total_reviews, is_verified )
         `)
         .eq('id', resourceId)
         .single()
-      if (!error && data) return { data, error: null }
+      if (!error && data) {
+        data.provider = attachProviderRating(data.provider, data.provider_id)
+        return { data, error: null }
+      }
 
       // Fallback: If joined profiles query fails, fetch resource directly
       const { data: directData, error: directErr } = await supabase
@@ -377,7 +473,7 @@ export async function getResourceById(resourceId) {
           try {
             const { data: prof } = await supabase
               .from('profiles')
-              .select('id, full_name, email, avatar_url, location')
+              .select('id, full_name, email, avatar_url, location, badge, avg_rating, total_reviews, is_verified')
               .eq('id', directData.provider_id)
               .maybeSingle()
             if (prof) directData.provider = prof
@@ -385,6 +481,7 @@ export async function getResourceById(resourceId) {
             console.warn('Profile fetch warning:', pErr)
           }
         }
+        directData.provider = attachProviderRating(directData.provider, directData.provider_id)
         return { data: directData, error: null }
       }
     } catch (err) {
@@ -1351,3 +1448,289 @@ export async function getActiveRequestCount() {
     return { count: 3, error: null }
   }
 }
+
+/* ====================================================================
+ * REVIEWS & PROVIDER RATINGS API
+ * ==================================================================== */
+
+/**
+ * Fetch all reviews received by a provider across all their resources
+ */
+export async function getReviewsForProvider(providerId) {
+  if (!providerId) return { data: [], error: 'Provider ID is required' }
+
+  let reviews = []
+
+  // 1. Fetch from Supabase if available
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          id,
+          reviewer_id,
+          provider_id,
+          resource_id,
+          rating,
+          comment,
+          created_at,
+          reviewer:profiles ( id, full_name, avatar_url, badge ),
+          resource:resources ( id, title )
+        `)
+        .eq('provider_id', providerId)
+        .order('created_at', { ascending: false })
+
+      if (!error && data) {
+        reviews = data.map((r) => ({
+          ...r,
+          resource_title: r.resource?.title || r.resource_title || 'Resource',
+          reviewer: r.reviewer || { id: r.reviewer_id, full_name: 'Community Member' }
+        }))
+      }
+    } catch (e) {
+      console.warn('Supabase fetch reviews warning:', e)
+    }
+  }
+
+  // 2. Merge local custom reviews for this provider
+  const localReviews = getLocalReviews().filter((r) => r.provider_id === providerId)
+  if (localReviews.length > 0) {
+    const existingIds = new Set(reviews.map((r) => r.id))
+    const existingPairs = new Set(reviews.map((r) => `${r.reviewer_id}_${r.resource_id}`))
+    for (const lr of localReviews) {
+      if (!existingIds.has(lr.id) && !existingPairs.has(`${lr.reviewer_id}_${lr.resource_id}`)) {
+        reviews.unshift(lr)
+      }
+    }
+  }
+
+  // 3. Merge initial seed reviews if available
+  const seedReviews = (INITIAL_REVIEWS || []).filter((r) => r.provider_id === providerId)
+  if (seedReviews.length > 0) {
+    const existingIds = new Set(reviews.map((r) => r.id))
+    for (const sr of seedReviews) {
+      if (!existingIds.has(sr.id)) {
+        reviews.push(sr)
+      }
+    }
+  }
+
+  // Order newest first
+  reviews.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+
+  return { data: reviews, error: null }
+}
+
+/**
+ * Check if the current user has already submitted a review for a specific resource
+ */
+export async function getUserReviewForResource(reviewerId, resourceId) {
+  if (!reviewerId || !resourceId) return { data: null, error: null }
+
+  // Check local reviews first
+  const localMatch = getLocalReviews().find(
+    (r) => r.reviewer_id === reviewerId && r.resource_id === resourceId
+  )
+  if (localMatch) return { data: localMatch, error: null }
+
+  // Check Supabase if available
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('reviewer_id', reviewerId)
+        .eq('resource_id', resourceId)
+        .maybeSingle()
+
+      if (!error && data) return { data, error: null }
+    } catch (e) {
+      console.warn('Supabase getUserReviewForResource error:', e)
+    }
+  }
+
+  return { data: null, error: null }
+}
+
+/**
+ * Submit or update a provider review
+ */
+export async function submitReview({
+  reviewerId,
+  providerId,
+  resourceId,
+  rating,
+  comment = '',
+  reviewerName = '',
+  reviewerAvatar = '',
+  resourceTitle = ''
+}) {
+  if (!reviewerId) {
+    return { data: null, error: 'You must be logged in to review a provider' }
+  }
+  if (!providerId) {
+    return { data: null, error: 'Provider information missing' }
+  }
+  if (reviewerId === providerId) {
+    return { data: null, error: 'You cannot rate or review your own resource' }
+  }
+  const numRating = Number(rating)
+  if (!numRating || numRating < 1 || numRating > 5) {
+    return { data: null, error: 'Please choose a rating between 1 and 5 stars' }
+  }
+
+  const reviewObj = {
+    id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    reviewer_id: reviewerId,
+    provider_id: providerId,
+    resource_id: resourceId,
+    resource_title: resourceTitle || 'Resource Exchange',
+    rating: numRating,
+    comment: (comment || '').trim(),
+    created_at: new Date().toISOString(),
+    reviewer: {
+      id: reviewerId,
+      full_name: reviewerName || 'Community Member',
+      avatar_url: reviewerAvatar || null,
+      badge: 'Active Member'
+    }
+  }
+
+  // 1. Save locally for instant persistence
+  saveLocalReview(reviewObj)
+
+  // 2. Fetch all reviews for this provider to recalculate aggregate statistics
+  const { data: allReviews } = await getReviewsForProvider(providerId)
+  const validReviews = allReviews && allReviews.length > 0 ? allReviews : [reviewObj]
+  const totalCount = validReviews.length
+  const sumRating = validReviews.reduce((sum, r) => sum + Number(r.rating || 5), 0)
+  const newAvgRating = Math.round((sumRating / totalCount) * 10) / 10
+  const isVerified = newAvgRating >= 4.5 && totalCount >= 5
+
+  const statsObj = {
+    avg_rating: newAvgRating,
+    total_reviews: totalCount,
+    is_verified: isVerified
+  }
+
+  // Persist locally
+  saveLocalProviderStats(providerId, statsObj)
+
+  // 3. Upsert into Supabase if connected
+  if (supabase) {
+    try {
+      const { data: insertedReview, error: reviewErr } = await supabase
+        .from('reviews')
+        .upsert(
+          {
+            reviewer_id: reviewerId,
+            provider_id: providerId,
+            resource_id: resourceId,
+            rating: numRating,
+            comment: (comment || '').trim() || null,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'reviewer_id, resource_id' }
+        )
+        .select()
+        .single()
+
+      if (insertedReview) {
+        reviewObj.id = insertedReview.id
+      }
+
+      // Update provider's profile in Supabase
+      await supabase
+        .from('profiles')
+        .update({
+          avg_rating: newAvgRating,
+          total_reviews: totalCount,
+          is_verified: isVerified
+        })
+        .eq('id', providerId)
+    } catch (e) {
+      console.warn('Supabase sync review error (local fallback active):', e)
+    }
+  }
+
+  // 4. Dispatch global event so cards, profiles and details pages update instantaneously
+  try {
+    window.dispatchEvent(
+      new CustomEvent('reloop-review-submitted', {
+        detail: {
+          providerId,
+          resourceId,
+          rating: numRating,
+          newStats: statsObj
+        }
+      })
+    )
+  } catch (e) {
+    // ignore
+  }
+
+  return { data: reviewObj, newStats: statsObj, error: null }
+}
+
+/**
+ * Fetch a provider's full public profile with trust ratings and reviews
+ */
+export async function getProviderProfile(providerId) {
+  if (!providerId) return { data: null, error: 'No provider ID' }
+
+  let profile = null
+
+  // 1. Try Supabase
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url, location, bio, badge, avg_rating, total_reviews, is_verified, created_at')
+        .eq('id', providerId)
+        .maybeSingle()
+
+      if (!error && data) profile = data
+    } catch (e) {
+      console.warn('Supabase fetch profile warning:', e)
+    }
+  }
+
+  // 2. Check seed resources for provider info
+  if (!profile) {
+    const seedMatch = INITIAL_RESOURCES.find((r) => r.provider?.id === providerId)
+    if (seedMatch && seedMatch.provider) {
+      profile = {
+        ...seedMatch.provider,
+        location: seedMatch.location_name || seedMatch.location || 'Kerala, India',
+        created_at: new Date(Date.now() - 86400000 * 365).toISOString()
+      }
+    }
+  }
+
+  // 3. Fallback mock / user profile
+  if (!profile) {
+    profile = {
+      id: providerId,
+      full_name: 'Community Member',
+      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${providerId}`,
+      badge: 'Active Member',
+      location: 'Kerala, India',
+      created_at: new Date(Date.now() - 86400000 * 180).toISOString()
+    }
+  }
+
+  // Attach enriched rating metrics
+  profile = attachProviderRating(profile, providerId)
+
+  // Fetch reviews for this provider
+  const { data: reviews } = await getReviewsForProvider(providerId)
+
+  return {
+    data: {
+      ...profile,
+      reviews: reviews || []
+    },
+    error: null
+  }
+}
+
