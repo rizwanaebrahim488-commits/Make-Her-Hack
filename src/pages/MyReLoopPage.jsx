@@ -7,9 +7,10 @@ import {
   getUserWishlist,
 } from '../lib/supabase'
 import {
-  Bell, MessageCircle, Package, ClipboardList, Heart, Activity, MapPin, Sparkles, Calendar, Users, Star, ShieldCheck
+  Bell, MessageCircle, Package, ClipboardList, Heart, Activity, MapPin, Sparkles, Calendar, Users, Star, ShieldCheck, Gift
 } from 'lucide-react'
 import AccountLayout from '../components/AccountLayout'
+import LivingEcoTreeCard from '../components/LivingEcoTreeCard'
 
 const STATS = [
   { label: 'Resources given', icon: Package, key: 'resources' },
@@ -21,6 +22,7 @@ const STATS = [
 const QUICK_LINKS = [
   { key: 'resources', label: 'My Resources', icon: Package, desc: 'Manage items you are giving' },
   { key: 'requests', label: 'My Requests', icon: ClipboardList, desc: 'Track your resource requests' },
+  { key: 'rewards', label: 'My Rewards', icon: Gift, desc: 'Demo discounts & coupon codes' },
   { key: 'wishlist', label: 'Wishlist', icon: Heart, desc: 'Saved items you love' },
 ]
 
@@ -157,6 +159,14 @@ export default function MyReLoopPage({ setCurrentView }) {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Living Eco-Tree Progression Card */}
+        <div className="mt-6">
+          <LivingEcoTreeCard
+            setCurrentView={setCurrentView}
+            onOpenRewards={() => setCurrentView('rewards')}
+          />
         </div>
 
         {/* Quick stats + links row */}

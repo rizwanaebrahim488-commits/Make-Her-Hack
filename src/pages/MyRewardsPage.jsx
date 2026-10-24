@@ -10,7 +10,9 @@ import {
   ArrowRight,
   RotateCcw,
   Trash2,
+  ShieldCheck
 } from 'lucide-react'
+import { getEcoPoints, getTreeStage, MILESTONES } from '../lib/ecoPoints'
 
 export function getSavedRewardsList() {
   try {
@@ -25,10 +27,14 @@ export default function MyRewardsPage({ setCurrentView }) {
   const [rewards, setRewards] = useState([])
   const [copiedCode, setCopiedCode] = useState(null)
   const [activeInfoReward, setActiveInfoReward] = useState(null)
+  const [ecoPoints, setEcoPoints] = useState(getEcoPoints())
 
   useEffect(() => {
     setRewards(getSavedRewardsList())
+    setEcoPoints(getEcoPoints())
   }, [])
+
+  const treeStage = getTreeStage(ecoPoints)
 
   const handleCopy = (code) => {
     navigator.clipboard.writeText(code)
@@ -82,6 +88,63 @@ export default function MyRewardsPage({ setCurrentView }) {
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Eco-Tree Milestone Roadmap */}
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white rounded-3xl border border-emerald-200/80 p-5 sm:p-6 mb-6 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="w-10 h-10 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center text-2xl shadow-2xs">
+                {treeStage.icon}
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-900">
+                  {treeStage.title} Progression ({ecoPoints} Eco-Points)
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Earn points from giving, exchanges, and daily quizzes to unlock higher tier milestone rewards.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCurrentView('dashboard')}
+              className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline self-start sm:self-auto cursor-pointer"
+            >
+              View Full Eco-Tree →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {MILESTONES.map((ms) => {
+              const isUnlocked = ecoPoints >= ms.points
+              return (
+                <div
+                  key={ms.points}
+                  className={`p-3.5 rounded-2xl border transition ${
+                    isUnlocked
+                      ? 'bg-white border-emerald-300 shadow-xs'
+                      : 'bg-white/60 border-gray-200 opacity-75'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-black text-emerald-800">{ms.discount}</span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        isUnlocked
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {isUnlocked ? '✓ Unlocked' : `${ms.points} pts`}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-gray-800 truncate">{ms.title}</p>
+                  <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{ms.desc}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
 

@@ -24,6 +24,7 @@ import MyRewardsPage from './pages/MyRewardsPage'
 import MobileBottomNav from './components/MobileBottomNav'
 import ProviderProfileModal from './components/ProviderProfileModal'
 import RateProviderModal from './components/RateProviderModal'
+import MilestoneRewardModal from './components/MilestoneRewardModal'
 
 function AppContent() {
   const [currentView, setCurrentView] = useState('explore')
@@ -33,6 +34,7 @@ function AppContent() {
   const [exploreFilter, setExploreFilter] = useState({ category: 'all', search: '' })
   const [globalProfileModalProvider, setGlobalProfileModalProvider] = useState(null)
   const [globalRateModalTarget, setGlobalRateModalTarget] = useState(null)
+  const [unlockedMilestoneReward, setUnlockedMilestoneReward] = useState(null)
 
   const handleNavigateToExplore = ({ category = 'all', search = '' } = {}) => {
     setExploreFilter({ category: category || 'all', search: search || '' })
@@ -71,6 +73,17 @@ function AppContent() {
     }
     window.addEventListener('reloop-open-provider-profile', handler)
     return () => window.removeEventListener('reloop-open-provider-profile', handler)
+  }, [])
+
+  // Listen for tree growth milestone reward unlocks
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail && e.detail.reward) {
+        setUnlockedMilestoneReward(e.detail.reward)
+      }
+    }
+    window.addEventListener('reloop-milestone-unlocked', handler)
+    return () => window.removeEventListener('reloop-milestone-unlocked', handler)
   }, [])
 
   const handleOpenChat = ({ resourceId, otherUserId, otherName, resourceTitle }) => {
@@ -238,6 +251,17 @@ function AppContent() {
         onClose={() => setGlobalRateModalTarget(null)}
         resource={globalRateModalTarget?.resource}
         provider={globalRateModalTarget?.provider}
+      />
+
+      {/* Milestone Level-Up Reward Modal */}
+      <MilestoneRewardModal
+        isOpen={Boolean(unlockedMilestoneReward)}
+        onClose={() => setUnlockedMilestoneReward(null)}
+        reward={unlockedMilestoneReward}
+        onNavigateToRewards={() => {
+          setUnlockedMilestoneReward(null)
+          setCurrentView('rewards')
+        }}
       />
     </div>
   )

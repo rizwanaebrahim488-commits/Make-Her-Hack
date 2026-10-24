@@ -242,11 +242,12 @@ create policy "Authenticated users can upload profile images"
 -- 5) REVIEWS, PROVIDER RATINGS & VERIFICATION SCHEMA
 -- ====================================================================
 
--- 5.1 Add Rating & Verification Columns to Profiles Table
+-- 5.1 Add Rating, Verification & Gamification Eco-Points Columns to Profiles Table
 alter table public.profiles 
   add column if not exists avg_rating numeric(3,2) default 0.0,
   add column if not exists total_reviews integer default 0,
-  add column if not exists is_verified boolean default false;
+  add column if not exists is_verified boolean default false,
+  add column if not exists eco_points integer default 0;
 
 -- 5.2 Create Reviews Table
 create table if not exists public.reviews (

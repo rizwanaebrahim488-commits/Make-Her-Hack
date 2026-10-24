@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { awardEcoPoints, getEcoPoints, getTreeStage } from '../lib/ecoPoints'
 import {
   Sparkles,
   Trophy,
@@ -421,6 +422,18 @@ export default function MatchTheMaterialGame({ setCurrentView, onNavigateToExplo
           status: 'Unlocked',
         })
       }
+
+      // Award Eco-Points to grow living tree
+      if (finalScore > 0) {
+        try {
+          awardEcoPoints('DAILY_QUIZ', finalScore, {
+            details: `Scored ${finalScore}/100 in Match the Material quiz`
+          })
+        } catch (pe) {
+          console.warn('Point award error:', pe)
+        }
+      }
+
       setGameState('results')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -673,9 +686,9 @@ export default function MatchTheMaterialGame({ setCurrentView, onNavigateToExplo
             </p>
 
             {/* Score Summary Box */}
-            <div className="inline-flex items-center gap-6 p-4 rounded-2xl bg-gray-50 border border-gray-200/80 mb-6">
+            <div className="inline-flex items-center gap-6 p-4 rounded-2xl bg-gray-50 border border-gray-200/80 mb-4">
               <div>
-                <span className="text-xs text-gray-500 font-semibold block">Total Score</span>
+                <span className="text-xs text-gray-500 font-semibold block">Quiz Score</span>
                 <span className="text-2xl font-black text-gray-900">{score} / 100</span>
               </div>
               <div className="w-px h-8 bg-gray-200" />
@@ -684,6 +697,21 @@ export default function MatchTheMaterialGame({ setCurrentView, onNavigateToExplo
                 <span className="text-2xl font-black text-emerald-600">{correctCount} of 5</span>
               </div>
             </div>
+
+            {/* Eco-Tree Points Callout */}
+            {score > 0 && (
+              <div className="mb-6 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 max-w-md mx-auto flex items-center justify-center gap-2 text-xs font-bold text-emerald-800 shadow-2xs">
+                <span className="text-base">🌱</span>
+                <span>+{score} Bonus Eco-Points added to your Living Eco-Tree!</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('dashboard')}
+                  className="underline text-emerald-950 ml-1 font-black hover:text-emerald-700 cursor-pointer"
+                >
+                  View Tree →
+                </button>
+              </div>
+            )}
 
             {/* ---------------- A. SCORE >= 60: REWARD UNLOCKED ---------------- */}
             {score >= 60 ? (

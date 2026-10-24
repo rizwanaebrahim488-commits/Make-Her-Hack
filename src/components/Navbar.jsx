@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext'
 import { PlusCircle, Compass, Home, LogIn, LogOut, User, Heart, Bell, MessageCircle, Sparkles, Gift } from 'lucide-react'
+import EcoScorePill from './EcoScorePill'
 
 export default function Navbar({ currentView, setCurrentView }) {
   const { user, profile, setIsAuthModalOpen, setAuthMode, signOut, requireAuth } = useAuth()
@@ -116,6 +117,9 @@ export default function Navbar({ currentView, setCurrentView }) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Eco-Score & Tree Level Pill */}
+            <EcoScorePill onOpenEcoTree={handleMyReLoop} />
+
             {/* Notifications */}
             {user && (
               <button

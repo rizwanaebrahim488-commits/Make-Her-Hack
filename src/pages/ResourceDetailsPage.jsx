@@ -14,6 +14,7 @@ import {
 import ResourceMap from '../components/ResourceMap'
 import RateProviderModal from '../components/RateProviderModal'
 import ProviderProfileModal from '../components/ProviderProfileModal'
+import { awardEcoPoints } from '../lib/ecoPoints'
 import {
   ArrowLeft,
   Heart,
@@ -266,6 +267,17 @@ export default function ResourceDetailsPage({
       setRequestStatus(status)
       setRequest((prev) => (prev ? { ...prev, status } : null))
       setError(null)
+
+      if (status === 'accepted' || status === 'completed') {
+        try {
+          awardEcoPoints('COMPLETE_EXCHANGE', 40, {
+            userId: user?.id,
+            details: `Completed exchange for "${resource?.title}"`
+          })
+        } catch (pe) {
+          console.warn(pe)
+        }
+      }
     }
     setRequestLoading(false)
   }

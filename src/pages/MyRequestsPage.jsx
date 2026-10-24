@@ -5,6 +5,7 @@ import {
   getRequestsByRequester,
   updateRequestStatus,
 } from '../lib/supabase'
+import { awardEcoPoints } from '../lib/ecoPoints'
 import { ArrowLeft, ClipboardList, Package, Clock, MessageCircle } from 'lucide-react'
 import AccountLayout from '../components/AccountLayout'
 
@@ -76,6 +77,14 @@ export default function MyRequestsPage({ setCurrentView, onOpenChat, onOpenResou
     try {
       await updateRequestStatus(req.id, 'completed')
       setRequests((prev) => prev.map((r) => (r.id === req.id ? { ...r, status: 'completed' } : r)))
+      try {
+        awardEcoPoints('COMPLETE_EXCHANGE', 40, {
+          userId: user.id,
+          details: `Completed exchange for request: "${req.title || 'Resource'}"`
+        })
+      } catch (pe) {
+        console.warn(pe)
+      }
     } catch (err) {
       setError(err.message || 'Failed to update request.')
     }

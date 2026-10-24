@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { createResource, createRequest } from '../lib/supabase'
+import { awardEcoPoints } from '../lib/ecoPoints'
 import {
   ArrowLeft,
   PlusCircle,
@@ -232,6 +233,23 @@ export default function AddResourcePage({ setCurrentView }) {
         } catch (reqErr) {
           console.warn('Failed to insert into requests table:', reqErr)
         }
+      }
+
+      // Award Eco-Points for community activity
+      try {
+        if (isRequest || type === 'disposal') {
+          awardEcoPoints('POST_REQUEST_OR_DISPOSAL', 20, {
+            userId: user.id,
+            details: `Posted community request: "${form.title.trim()}"`
+          })
+        } else {
+          awardEcoPoints('POST_ITEM', 50, {
+            userId: user.id,
+            details: `Gave resource: "${form.title.trim()}"`
+          })
+        }
+      } catch (pointErr) {
+        console.warn('Eco-points award notice:', pointErr)
       }
 
       setLoading(false)
