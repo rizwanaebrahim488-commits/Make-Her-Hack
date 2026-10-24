@@ -1,5 +1,5 @@
 import { useAuth } from '../context/AuthContext'
-import { PlusCircle, Compass, Home, LogIn, LogOut, User, Heart, Bell, MessageCircle } from 'lucide-react'
+import { PlusCircle, Compass, Home, LogIn, LogOut, User, Heart, Bell, MessageCircle, Sparkles, Gift } from 'lucide-react'
 
 export default function Navbar({ currentView, setCurrentView }) {
   const { user, profile, setIsAuthModalOpen, setAuthMode, signOut, requireAuth } = useAuth()
@@ -98,6 +98,19 @@ export default function Navbar({ currentView, setCurrentView }) {
             >
               <Heart className="w-4 h-4" />
               <span>Requests</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('game')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
+                currentView === 'game'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200/60'
+              }`}
+              title="Play Match the Material Game"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>Eco Game</span>
             </button>
           </nav>
 

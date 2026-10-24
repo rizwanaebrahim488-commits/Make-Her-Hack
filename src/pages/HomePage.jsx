@@ -233,6 +233,36 @@ export default function HomePage({
         </div>
       </section>
 
+      {/* 2.5 ECO GAMIFICATION BANNER: MATCH THE MATERIAL */}
+      <section className="px-4 sm:px-6 lg:px-8 pb-8 pt-2">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-emerald-700/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+            <div className="flex-1 text-center md:text-left z-10">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-white/20 backdrop-blur-xs text-white mb-3 border border-white/20">
+                <span>🎮</span> Play &amp; Earn Demo Rewards
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
+                Play &ldquo;Match the Material&rdquo; Mini-Game
+              </h3>
+              <p className="text-xs sm:text-sm text-emerald-100 mt-2 max-w-xl leading-relaxed">
+                Test your upcycling knowledge in 5 quick challenges, score 60+ points, and unlock your exclusive 10% OFF Google Pay-style scratch card reward!
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 z-10">
+              <button
+                type="button"
+                onClick={() => setCurrentView('game')}
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white text-emerald-800 font-black text-sm hover:bg-emerald-50 transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Play Mini-Game</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 3. RELOOP EXPLORE CARDS (CONNECTED TO EXPLORE CATEGORIES) */}
       <section className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-white border-y border-gray-100">
         <div className="max-w-6xl mx-auto">

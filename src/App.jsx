@@ -19,6 +19,8 @@ import ActivityPage from './pages/ActivityPage'
 import SettingsPage from './pages/SettingsPage'
 import HelpSupportPage from './pages/HelpSupportPage'
 import AddResourcePage from './pages/AddResourcePage'
+import MatchTheMaterialGame from './pages/MatchTheMaterialGame'
+import MyRewardsPage from './pages/MyRewardsPage'
 import MobileBottomNav from './components/MobileBottomNav'
 
 function AppContent() {
@@ -159,6 +161,15 @@ function AppContent() {
         )}
         {currentView === 'help' && (
           <HelpSupportPage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'rewards' && (
+          <MyRewardsPage setCurrentView={setCurrentView} />
+        )}
+        {currentView === 'game' && (
+          <MatchTheMaterialGame
+            setCurrentView={setCurrentView}
+            onNavigateToExplore={handleNavigateToExplore}
+          />
         )}
         {currentView === 'add-resource' && (
           <AddResourcePage setCurrentView={setCurrentView} />

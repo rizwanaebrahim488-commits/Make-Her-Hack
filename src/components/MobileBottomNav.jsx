@@ -7,6 +7,7 @@ export default function MobileBottomNav({ currentView, setCurrentView }) {
 
   const isAccountView = [
     'dashboard',
+    'rewards',
     'resources',
     'requests',
     'messages',

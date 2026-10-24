@@ -13,10 +13,12 @@ import {
   HelpCircle,
   LogOut,
   User,
+  Gift,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'My ReLoop', icon: Home },
+  { key: 'rewards', label: 'My Rewards', icon: Gift },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'messages', label: 'Messages', icon: MessageCircle },
   { key: 'resources', label: 'My Resources', icon: Package },
