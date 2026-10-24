@@ -29,7 +29,7 @@ export default function ActivityPage({ setCurrentView }) {
           getUserWishlist(user.id),
         ])
         const given = (resData?.data || []).filter(
-          (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.status !== 'deleted'
+          (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.resource_type !== 'request' && r.status !== 'deleted'
         ).length
         const userRequests = (reqData?.data || []).filter((r) => r.requester_id === user.id)
         const requests = userRequests.length

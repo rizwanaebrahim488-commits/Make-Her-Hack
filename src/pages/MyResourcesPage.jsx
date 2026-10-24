@@ -77,8 +77,11 @@ export default function MyResourcesPage({ setCurrentView, onOpenResourceDetails,
         const { data } = await getResourcesByUser(user.id)
         if (mounted) {
           // Strictly verify that only resources belonging to this logged in user appear in My Resources
+          // Exclude requests because requests belong exclusively in My Requests
           const myOnly = (data || []).filter(
-            (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.status !== 'deleted'
+            (r) => (r.provider_id === user.id || r.provider?.id === user.id) &&
+                   r.resource_type !== 'request' &&
+                   r.status !== 'deleted'
           )
           setResources(myOnly)
         }

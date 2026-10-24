@@ -57,10 +57,10 @@ export default function MyReLoopPage({ setCurrentView }) {
       try {
         setLoading(true)
         if (user) {
-          // Resources given strictly by this user
+          // Resources given strictly by this user (exclude requests)
           const { data: resources } = await getResourcesByUser(user.id)
           const myResources = (resources || []).filter(
-            (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.status !== 'deleted'
+            (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.resource_type !== 'request' && r.status !== 'deleted'
           )
 
           // Requests made strictly by this user

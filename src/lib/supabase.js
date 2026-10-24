@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { INITIAL_RESOURCES, PROVIDER_RATINGS_MAP, INITIAL_REVIEWS } from '../data/initialResources'
+import { PROVIDER_RATINGS_MAP } from '../data/initialResources'
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -108,13 +108,15 @@ export function getLocalCustomResources() {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    // Sanitize: ensure provider_id is mapped consistently
-    return parsed.map((item) => {
-      if (!item.provider_id && item.provider?.id) {
-        return { ...item, provider_id: item.provider.id }
-      }
-      return item
-    })
+    // Sanitize: ensure provider_id is mapped consistently and filter out legacy test mocks
+    return parsed
+      .filter((item) => item && item.id && !item.id.toString().startsWith('item-') && !item.id.toString().startsWith('plant-') && !item.id.toString().startsWith('disp-') && !item.id.toString().startsWith('serv-'))
+      .map((item) => {
+        if (!item.provider_id && item.provider?.id) {
+          return { ...item, provider_id: item.provider.id }
+        }
+        return item
+      })
   } catch (e) {
     console.warn('Failed to parse local resources:', e)
     return []
@@ -292,10 +294,7 @@ export async function getResources({
             id,
             full_name,
             avatar_url,
-            badge,
-            avg_rating,
-            total_reviews,
-            is_verified
+            badge
           )
         `)
         .neq('status', 'deleted')
@@ -306,7 +305,7 @@ export async function getResources({
         query = query.neq('resource_type', 'request')
       } else {
         const normalizedType = resourceType.toLowerCase().replace(/s$/, '')
-        query = query.or(`resource_type.eq.${normalizedType},resource_type.eq.${normalizedType}s`)
+        query = query.in('resource_type', [normalizedType, `${normalizedType}s`])
       }
 
       if (category && category !== 'All') {
@@ -326,19 +325,18 @@ export async function getResources({
 
       const { data, error } = await query.order('created_at', { ascending: false })
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         combined = data
         source = 'supabase'
+      } else if (error) {
+        console.warn('Supabase query error:', error.message)
       }
     }
   } catch (err) {
-    console.warn('Supabase query failed, falling back to local dataset:', err)
+    console.warn('Supabase query failed:', err)
   }
 
-  // If Supabase has no data or wasn't reachable, use INITIAL_RESOURCES
-  if (combined.length === 0) {
-    combined = [...INITIAL_RESOURCES]
-  }
+  // Pure Supabase data - do not inject fake test items
 
   // Always merge locally created user resources so user's items appear immediately
   const localItems = getLocalCustomResources()
@@ -426,19 +424,7 @@ export async function getResourceById(resourceId) {
     }
   }
 
-  // 2. Check initial seed resources next
-  const seedMatch = INITIAL_RESOURCES.find((x) => x.id === resourceId)
-  if (seedMatch) {
-    return {
-      data: {
-        ...seedMatch,
-        provider: attachProviderRating(seedMatch.provider, seedMatch.provider?.id)
-      },
-      error: null
-    }
-  }
-
-  // 3. Query Supabase
+  // 2. Query Supabase
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -467,7 +453,7 @@ export async function getResourceById(resourceId) {
           image_urls,
           created_at,
           updated_at,
-          provider:profiles ( id, full_name, email, avatar_url, location, badge, avg_rating, total_reviews, is_verified )
+          provider:profiles ( id, full_name, email, avatar_url, location, badge )
         `)
         .eq('id', resourceId)
         .single()
@@ -488,7 +474,7 @@ export async function getResourceById(resourceId) {
           try {
             const { data: prof } = await supabase
               .from('profiles')
-              .select('id, full_name, email, avatar_url, location, badge, avg_rating, total_reviews, is_verified')
+              .select('id, full_name, email, avatar_url, location, badge')
               .eq('id', directData.provider_id)
               .maybeSingle()
             if (prof) directData.provider = prof
@@ -661,18 +647,23 @@ export async function deleteResource(resourceId) {
 /**
  * Fetch resources posted by a specific user
  */
-export async function getResourcesByUser(userId) {
+export async function getResourcesByUser(userId, { includeRequests = false } = {}) {
   if (!userId) return { data: [], error: null }
   let results = []
 
   if (supabase && userId) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('resources')
         .select('*')
         .eq('provider_id', userId)
         .neq('status', 'deleted')
-        .order('created_at', { ascending: false })
+      
+      if (!includeRequests) {
+        query = query.neq('resource_type', 'request')
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false })
       if (!error && data) {
         results = data
       }
@@ -684,7 +675,9 @@ export async function getResourcesByUser(userId) {
   // Merge locally created resources STRICTLY for this user only
   const localItems = getLocalCustomResources()
   const localMatches = localItems.filter(
-    (x) => Boolean(x.provider_id && x.provider_id === userId) && x.status !== 'deleted'
+    (x) => Boolean(x.provider_id && x.provider_id === userId) &&
+           (includeRequests || x.resource_type !== 'request') &&
+           x.status !== 'deleted'
   )
   const existingIds = new Set(results.map((x) => x.id))
   
@@ -696,7 +689,9 @@ export async function getResourcesByUser(userId) {
 
   // Strict guardrail: Under no circumstances allow another user's resource into this account's resources
   results = results.filter(
-    (x) => (x.provider_id === userId || x.provider?.id === userId) && x.status !== 'deleted'
+    (x) => (x.provider_id === userId || x.provider?.id === userId) &&
+           (includeRequests || x.resource_type !== 'request') &&
+           x.status !== 'deleted'
   )
 
   // Check for expired status
@@ -1023,8 +1018,10 @@ export function saveLocalRequest(req) {
 
 export async function getCommunityRequests(limit = 4) {
   let list = []
+
   if (supabase) {
     try {
+      // 1. Fetch from requests table
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -1037,7 +1034,7 @@ export async function getCommunityRequests(limit = 4) {
           requester_id,
           provider_id,
           resource:resources ( id, title, category, location_name, resource_type, is_time_sensitive ),
-          requester:profiles!requests_requester_id_fkey ( id, full_name, avatar_url )
+          requester:profiles ( id, full_name, avatar_url )
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
@@ -1047,7 +1044,52 @@ export async function getCommunityRequests(limit = 4) {
         list = data
       }
     } catch (e) {
-      console.warn('getCommunityRequests query warning:', e)
+      console.warn('getCommunityRequests requests query warning:', e)
+    }
+
+    try {
+      // 2. Fetch all community requests posted in resources table (resource_type === 'request')
+      const { data: resData, error: resErr } = await supabase
+        .from('resources')
+        .select(`
+          id,
+          title,
+          description,
+          category,
+          location_name,
+          resource_type,
+          status,
+          created_at,
+          provider_id,
+          provider:profiles ( id, full_name, avatar_url, badge )
+        `)
+        .eq('resource_type', 'request')
+        .neq('status', 'deleted')
+        .neq('status', 'expired')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (!resErr && resData && resData.length > 0) {
+        const existingIds = new Set(list.map((r) => r.resource_id || r.id))
+        for (const r of resData) {
+          if (!existingIds.has(r.id)) {
+            list.push({
+              id: r.id,
+              title: r.title,
+              message: r.description,
+              status: r.status === 'completed' ? 'completed' : 'pending',
+              created_at: r.created_at || new Date().toISOString(),
+              resource_id: r.id,
+              requester_id: r.provider_id,
+              provider_id: r.provider_id,
+              resource: r,
+              requester: r.provider || { id: r.provider_id, full_name: 'Community Member' },
+            })
+          }
+        }
+      }
+    } catch (re) {
+      console.warn('getCommunityRequests resources fetch warning:', re)
     }
   }
 
@@ -1070,22 +1112,6 @@ export async function getCommunityRequests(limit = 4) {
         requester: item.provider || { full_name: 'Community Member' }
       })
     }
-  }
-
-  // If still empty, use initial seed requests
-  if (list.length === 0) {
-    const seedReqs = INITIAL_RESOURCES.filter((x) => x.resource_type === 'request')
-    list = seedReqs.map((sr) => ({
-      id: sr.id,
-      title: sr.title,
-      message: sr.description,
-      status: 'pending',
-      created_at: sr.created_at,
-      resource_id: sr.id,
-      requester_id: sr.provider?.id,
-      resource: sr,
-      requester: sr.provider || { full_name: 'Community Member' },
-    }))
   }
 
   return { data: list.slice(0, limit), error: null }
@@ -1416,22 +1442,23 @@ export async function uploadProfileImage(userId, imageFile) {
 /* ===================== HOME PAGE STATS ===================== */
 
 export async function getResourceCount() {
-  if (!supabase) return { count: INITIAL_RESOURCES.length, error: null }
+  if (!supabase) return { count: 0, error: null }
   try {
     const { count, error } = await supabase
       .from('resources')
       .select('*', { head: true, count: 'exact' })
       .eq('status', 'available')
+      .neq('resource_type', 'request')
     if (error) throw error
     return { count: count || 0, error: null }
   } catch (err) {
-    const local = getLocalCustomResources().length
-    return { count: INITIAL_RESOURCES.length + local, error: null }
+    const local = getLocalCustomResources().filter(r => r.resource_type !== 'request').length
+    return { count: local, error: null }
   }
 }
 
 export async function getProfileCount() {
-  if (!supabase) return { count: 12, error: null }
+  if (!supabase) return { count: 0, error: null }
   try {
     const { count, error } = await supabase
       .from('profiles')
@@ -1439,12 +1466,12 @@ export async function getProfileCount() {
     if (error) throw error
     return { count: count || 0, error: null }
   } catch (err) {
-    return { count: 12, error: null }
+    return { count: 0, error: null }
   }
 }
 
 export async function getCompletedRequestCount() {
-  if (!supabase) return { count: 8, error: null }
+  if (!supabase) return { count: 0, error: null }
   try {
     const { count, error } = await supabase
       .from('requests')
@@ -1453,21 +1480,30 @@ export async function getCompletedRequestCount() {
     if (error) throw error
     return { count: count || 0, error: null }
   } catch (err) {
-    return { count: 8, error: null }
+    return { count: 0, error: null }
   }
 }
 
 export async function getActiveRequestCount() {
-  if (!supabase) return { count: 3, error: null }
+  if (!supabase) return { count: 0, error: null }
   try {
-    const { count, error } = await supabase
+    let total = 0
+    const { count: reqCount } = await supabase
       .from('requests')
       .select('*', { head: true, count: 'exact' })
       .eq('status', 'pending')
-    if (error) throw error
-    return { count: count || 0, error: null }
+    if (reqCount) total += reqCount
+
+    const { count: resReqCount } = await supabase
+      .from('resources')
+      .select('*', { head: true, count: 'exact' })
+      .eq('resource_type', 'request')
+      .eq('status', 'available')
+    if (resReqCount) total += resReqCount
+
+    return { count: total, error: null }
   } catch (err) {
-    return { count: 3, error: null }
+    return { count: 0, error: null }
   }
 }
 
@@ -1522,17 +1558,6 @@ export async function getReviewsForProvider(providerId) {
     for (const lr of localReviews) {
       if (!existingIds.has(lr.id) && !existingPairs.has(`${lr.reviewer_id}_${lr.resource_id}`)) {
         reviews.unshift(lr)
-      }
-    }
-  }
-
-  // 3. Merge initial seed reviews if available
-  const seedReviews = (INITIAL_REVIEWS || []).filter((r) => r.provider_id === providerId)
-  if (seedReviews.length > 0) {
-    const existingIds = new Set(reviews.map((r) => r.id))
-    for (const sr of seedReviews) {
-      if (!existingIds.has(sr.id)) {
-        reviews.push(sr)
       }
     }
   }
@@ -1707,7 +1732,7 @@ export async function getProviderProfile(providerId) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, avatar_url, location, bio, badge, avg_rating, total_reviews, is_verified, created_at')
+        .select('id, full_name, email, avatar_url, location, bio, badge, created_at')
         .eq('id', providerId)
         .maybeSingle()
 
@@ -1717,19 +1742,7 @@ export async function getProviderProfile(providerId) {
     }
   }
 
-  // 2. Check seed resources for provider info
-  if (!profile) {
-    const seedMatch = INITIAL_RESOURCES.find((r) => r.provider?.id === providerId)
-    if (seedMatch && seedMatch.provider) {
-      profile = {
-        ...seedMatch.provider,
-        location: seedMatch.location_name || seedMatch.location || 'Kerala, India',
-        created_at: new Date(Date.now() - 86400000 * 365).toISOString()
-      }
-    }
-  }
-
-  // 3. Fallback mock / user profile
+  // 2. Fallback mock / user profile
   if (!profile) {
     profile = {
       id: providerId,
