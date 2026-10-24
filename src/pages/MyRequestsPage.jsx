@@ -37,9 +37,10 @@ export default function MyRequestsPage({ setCurrentView, onOpenChat, onOpenResou
       try {
         setLoading(true)
         if (user) {
-          // Personal view: requests made by this user
+          // Personal view: requests made strictly by this user
           const { data } = await getRequestsByRequester(user.id)
-          if (mounted) setRequests(data || [])
+          const myRequests = (data || []).filter((r) => r.requester_id === user.id)
+          if (mounted) setRequests(myRequests)
         } else {
           // Public view: all pending requests
           const { data, error: err } = await supabase

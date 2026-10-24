@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
   getResourcesByUser,
+  getRequestsByRequester,
   getUnreadNotificationCount,
   getConversations,
   getUserWishlist,
@@ -56,8 +57,17 @@ export default function MyReLoopPage({ setCurrentView }) {
       try {
         setLoading(true)
         if (user) {
-          // Resources given
+          // Resources given strictly by this user
           const { data: resources } = await getResourcesByUser(user.id)
+          const myResources = (resources || []).filter(
+            (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.status !== 'deleted'
+          )
+
+          // Requests made strictly by this user
+          const { data: requests } = await getRequestsByRequester(user.id)
+          const myRequests = (requests || []).filter((req) => req.requester_id === user.id)
+          const completedCount = myRequests.filter((r) => r.status === 'completed').length
+
           // Wishlist / saved
           const { data: wishlist } = await getUserWishlist(user.id)
           // Conversations / messages
@@ -67,9 +77,9 @@ export default function MyReLoopPage({ setCurrentView }) {
 
           if (mounted) {
             setStats({
-              resources: resources?.length || 0,
-              requests: 0,
-              completed: 0,
+              resources: myResources.length,
+              requests: myRequests.length,
+              completed: completedCount,
               saved: wishlist?.length || 0,
               messages: conversations?.length || 0,
             })

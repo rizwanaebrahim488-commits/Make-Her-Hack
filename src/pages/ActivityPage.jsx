@@ -28,10 +28,13 @@ export default function ActivityPage({ setCurrentView }) {
           getRequestsByRequester(user.id),
           getUserWishlist(user.id),
         ])
-        const given = (resData?.data || resData || []).length
-        const requests = (reqData?.data || reqData || []).length
-        const completed = ((reqData?.data || reqData || [])).filter(r => r.status === 'completed').length
-        const saved = (wishData?.data || wishData || []).length
+        const given = (resData?.data || []).filter(
+          (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.status !== 'deleted'
+        ).length
+        const userRequests = (reqData?.data || []).filter((r) => r.requester_id === user.id)
+        const requests = userRequests.length
+        const completed = userRequests.filter((r) => r.status === 'completed').length
+        const saved = (wishData?.data || []).length
         if (mounted) setStats({ given, requests, completed, saved })
       } catch (err) {
         setError(err.message || 'Failed to load activity.')

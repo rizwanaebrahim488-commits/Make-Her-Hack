@@ -105,7 +105,16 @@ export function attachProviderRating(provider, providerId) {
 export function getLocalCustomResources() {
   try {
     const raw = localStorage.getItem(LOCAL_RESOURCES_KEY)
-    return raw ? JSON.parse(raw) : []
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    // Sanitize: ensure provider_id is mapped consistently
+    return parsed.map((item) => {
+      if (!item.provider_id && item.provider?.id) {
+        return { ...item, provider_id: item.provider.id }
+      }
+      return item
+    })
   } catch (e) {
     console.warn('Failed to parse local resources:', e)
     return []
@@ -114,10 +123,16 @@ export function getLocalCustomResources() {
 
 export function saveLocalCustomResource(item) {
   try {
+    if (!item || !item.id) return item
+    const resolvedProviderId = item.provider_id || item.provider?.id || null
+    const sanitizedItem = {
+      ...item,
+      provider_id: resolvedProviderId,
+    }
     const existing = getLocalCustomResources()
-    const updated = [item, ...existing.filter((x) => x.id !== item.id)]
+    const updated = [sanitizedItem, ...existing.filter((x) => x.id !== item.id)]
     localStorage.setItem(LOCAL_RESOURCES_KEY, JSON.stringify(updated))
-    return item
+    return sanitizedItem
   } catch (e) {
     console.warn('Failed to save local resource:', e)
     return item
@@ -647,6 +662,7 @@ export async function deleteResource(resourceId) {
  * Fetch resources posted by a specific user
  */
 export async function getResourcesByUser(userId) {
+  if (!userId) return { data: [], error: null }
   let results = []
 
   if (supabase && userId) {
@@ -665,10 +681,10 @@ export async function getResourcesByUser(userId) {
     }
   }
 
-  // Merge locally created resources
+  // Merge locally created resources STRICTLY for this user only
   const localItems = getLocalCustomResources()
   const localMatches = localItems.filter(
-    (x) => (x.provider_id === userId || !x.provider_id) && x.status !== 'deleted'
+    (x) => Boolean(x.provider_id && x.provider_id === userId) && x.status !== 'deleted'
   )
   const existingIds = new Set(results.map((x) => x.id))
   
@@ -677,6 +693,11 @@ export async function getResourcesByUser(userId) {
       results.push(item)
     }
   }
+
+  // Strict guardrail: Under no circumstances allow another user's resource into this account's resources
+  results = results.filter(
+    (x) => (x.provider_id === userId || x.provider?.id === userId) && x.status !== 'deleted'
+  )
 
   // Check for expired status
   await processExpiredResources(results)
@@ -1186,8 +1207,9 @@ export async function getRequestsByRequester(userId) {
     }
   }
 
-  result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-  return { data: result, error: null }
+  const strictUserRequests = result.filter((r) => r.requester_id === userId)
+  strictUserRequests.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  return { data: strictUserRequests, error: null }
 }
 
 export async function getRequestsByProvider(userId) {

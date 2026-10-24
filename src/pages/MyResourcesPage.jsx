@@ -65,11 +65,23 @@ export default function MyResourcesPage({ setCurrentView, onOpenResourceDetails,
   useEffect(() => {
     let mounted = true
     const load = async () => {
-      if (!user) return
+      if (!user) {
+        if (mounted) {
+          setResources([])
+          setLoading(false)
+        }
+        return
+      }
       try {
         setLoading(true)
         const { data } = await getResourcesByUser(user.id)
-        if (mounted) setResources(data || [])
+        if (mounted) {
+          // Strictly verify that only resources belonging to this logged in user appear in My Resources
+          const myOnly = (data || []).filter(
+            (r) => (r.provider_id === user.id || r.provider?.id === user.id) && r.status !== 'deleted'
+          )
+          setResources(myOnly)
+        }
       } catch (err) {
         if (mounted) setError(err.message || 'Failed to load your resources.')
       } finally {
