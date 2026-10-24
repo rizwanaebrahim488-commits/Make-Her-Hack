@@ -187,7 +187,7 @@ export function AuthProvider({ children }) {
 
   const getRedirectUrl = () => {
     if (typeof window !== 'undefined') {
-      return (window.location.origin + window.location.pathname).replace(/\/$/, '') + '/'
+      return window.location.origin + window.location.pathname
     }
     return 'https://rizwanaebrahim488-commits.github.io/Make-Her-Hack/'
   }
@@ -232,7 +232,7 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = async () => {
     if (supabase) {
-      const redirectUrl = getRedirectUrl()
+      const redirectUrl = window.location.origin + window.location.pathname
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: redirectUrl }

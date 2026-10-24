@@ -1,9 +1,28 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import { PlusCircle, Compass, Home, LogIn, LogOut, User, Heart, Bell, MessageCircle, Sparkles, Gift } from 'lucide-react'
 import EcoScorePill from './EcoScorePill'
 
 export default function Navbar({ currentView, setCurrentView }) {
   const { user, profile, setIsAuthModalOpen, setAuthMode, signOut, requireAuth } = useAuth()
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    if (!supabase) return
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [])
 
   const handleGiveItem = () => {
     requireAuth(() => {
@@ -121,7 +140,7 @@ export default function Navbar({ currentView, setCurrentView }) {
             <EcoScorePill onOpenEcoTree={handleMyReLoop} />
 
             {/* Notifications */}
-            {user && (
+            {(session || user) && (
               <button
                 onClick={handleNotifications}
                 className="p-2 text-gray-400 hover:text-emerald-600 rounded-xl hover:bg-gray-50 transition"
@@ -132,7 +151,7 @@ export default function Navbar({ currentView, setCurrentView }) {
             )}
 
             {/* Messages */}
-            {user && (
+            {(session || user) && (
               <button
                 onClick={handleMessages}
                 className="relative p-2 text-gray-400 hover:text-emerald-600 rounded-xl hover:bg-gray-50 transition"
@@ -161,7 +180,7 @@ export default function Navbar({ currentView, setCurrentView }) {
             </button>
 
             {/* Auth Profile / Login */}
-            {user ? (
+            {(session || user) ? (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -170,12 +189,12 @@ export default function Navbar({ currentView, setCurrentView }) {
                   title="Open My ReLoop Dashboard"
                 >
                   <img
-                    src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile?.full_name || user.email)}`}
+                    src={profile?.avatar_url || (user || session?.user)?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile?.full_name || (user || session?.user)?.user_metadata?.full_name || (user || session?.user)?.email || 'User')}`}
                     alt="User Avatar"
                     className="w-7 h-7 rounded-full object-cover group-hover:scale-105 transition-transform"
                   />
                   <span className="text-xs font-semibold text-gray-700 group-hover:text-emerald-800 max-w-[100px] truncate hidden sm:inline">
-                    {profile?.full_name || user.email?.split('@')[0]}
+                    {profile?.full_name || (user || session?.user)?.user_metadata?.full_name || (user || session?.user)?.email?.split('@')[0]}
                   </span>
                 </button>
 
