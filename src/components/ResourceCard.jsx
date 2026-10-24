@@ -229,7 +229,7 @@ export default function ResourceCard({ resource, onViewDetails }) {
         )}
 
         {/* Gradient Overlay for Top Badges */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent pointer-events-none" />
 
         {/* Free / Paid Badge */}
         <div className="absolute top-3.5 left-3.5 z-10">
@@ -252,16 +252,58 @@ export default function ResourceCard({ resource, onViewDetails }) {
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-white stroke-white' : 'stroke-current'}`} />
         </button>
 
-        {/* Resource Condition or Status Pill */}
-        <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">
+        {/* Bottom Dark Gradient for Image Legibility */}
+        <div className="absolute inset-x-0 bottom-0 h-22 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+
+        {/* User Profile & Account Rating embedded as part of the Card Image */}
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between gap-1.5 pointer-events-none">
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              window.dispatchEvent(new CustomEvent('reloop-open-provider-profile', { detail: resource.provider }))
+            }}
+            className="inline-flex items-center gap-2 p-1.5 pr-2.5 rounded-2xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white pointer-events-auto transition cursor-pointer shadow-md"
+            title={`View ${resource.provider?.full_name || 'Provider'}'s profile & account rating`}
+          >
+            <div className="relative shrink-0">
+              <img
+                src={resource.provider?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resource.provider?.full_name || 'ReLoop')}`}
+                alt={resource.provider?.full_name || 'Provider'}
+                className="w-7 h-7 rounded-full object-cover border border-white/80 shrink-0"
+              />
+              {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[7px] text-white font-bold" title="Verified">
+                  ✓
+                </span>
+              )}
+            </div>
+
+            <div className="min-w-0 text-left">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-white truncate max-w-[105px] leading-tight">
+                  {resource.provider?.full_name || 'Community Member'}
+                </span>
+                {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
+                  <span className="text-emerald-300">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 text-[10px] font-bold mt-0.5 leading-none">
+                <span className="inline-flex items-center gap-0.5 text-amber-300">
+                  <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
+                  <span>{Number(resource.provider?.avg_rating || 4.8).toFixed(1)}</span>
+                </span>
+                {Number(resource.provider?.total_reviews || 0) > 0 && (
+                  <span className="text-white/70">({resource.provider.total_reviews})</span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {resource.condition && (
-            <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-semibold bg-black/60 backdrop-blur-md text-white">
+            <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-black/55 backdrop-blur-md text-white/95 border border-white/15 shrink-0">
               {resource.condition}
-            </span>
-          )}
-          {resource.status && resource.status !== 'available' && (
-            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-red-600/90 text-white shadow-xs">
-              {resource.status}
             </span>
           )}
         </div>
@@ -302,68 +344,18 @@ export default function ResourceCard({ resource, onViewDetails }) {
           </p>
         </div>
 
-        {/* Card Footer: Provider Info + View Details */}
-        <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between gap-2">
-          {/* Provider Snippet */}
-          <div 
-            onClick={(e) => {
-              e.stopPropagation()
-              window.dispatchEvent(new CustomEvent('reloop-open-provider-profile', { detail: resource.provider }))
-            }}
-            className="flex items-center gap-2 min-w-0 cursor-pointer group/provider hover:opacity-90"
-            title={`View ${resource.provider?.full_name || 'Provider'}'s profile & community rating`}
-          >
-            <div className="relative shrink-0">
-              <img
-                src={resource.provider?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resource.provider?.full_name || 'ReLoop')}`}
-                alt={resource.provider?.full_name || 'Provider'}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-emerald-100 shrink-0"
-              />
-              {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[8px] text-white font-bold" title="Verified Community Member">
-                  ✓
-                </span>
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="text-xs font-semibold text-gray-800 truncate group-hover/provider:text-emerald-700 transition-colors">
-                  {resource.provider?.full_name || 'Community Member'}
-                </p>
-                {Boolean(resource.provider?.is_verified ?? (Number(resource.provider?.avg_rating || 4.8) >= 4.5 && Number(resource.provider?.total_reviews || 0) >= 5)) && (
-                  <span 
-                    title="Verified Community Member (4.5+ Rating & 5+ Reviews)"
-                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0"
-                  >
-                    <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
-                    <span className="hidden sm:inline">Verified</span>
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium leading-none mt-0.5">
-                <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold">
-                  <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-500" />
-                  <span>{Number(resource.provider?.avg_rating || 4.8).toFixed(1)}</span>
-                </span>
-                {Number(resource.provider?.total_reviews || 0) > 0 && (
-                  <span className="text-gray-400 text-[10px]">({resource.provider.total_reviews})</span>
-                )}
-                {resource.provider?.badge && (
-                  <>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-[10px] text-emerald-600 font-medium truncate max-w-[90px]">{resource.provider.badge}</span>
-                  </>
-                )}
-              </div>
-            </div>
+        {/* Card Footer: Location/Badge & View Details */}
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1 text-emerald-600 font-medium truncate max-w-[150px]">
+            <span>{resource.provider?.badge || 'Community Provider'}</span>
           </div>
 
           {/* View Details CTA */}
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 px-3 py-1.5 rounded-xl transition shrink-0"
+            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 px-3 py-1.5 rounded-xl transition shrink-0 cursor-pointer"
           >
-            <span>View</span>
+            <span>View Details</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>

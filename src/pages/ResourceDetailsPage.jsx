@@ -82,53 +82,15 @@ export default function ResourceDetailsPage({
   const [request, setRequest] = useState(null)
   const [requestLoading, setRequestLoading] = useState(false)
   const [requestStatus, setRequestStatus] = useState(null) // 'pending' | 'accepted' | 'rejected' | null
-  const [chatOpen, setChatOpen] = useState(false)
-  const [messageSent, setMessageSent] = useState(false)
-  const [messageContent, setMessageContent] = useState('')
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [calculatedDistance, setCalculatedDistance] = useState(null)
-
-  // Review & Rating Modal states
-  const [isRateModalOpen, setIsRateModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
-  const [providerReviews, setProviderReviews] = useState([])
-  const [loadingReviews, setLoadingReviews] = useState(false)
-  const [myReview, setMyReview] = useState(null)
 
   // Safe provider helpers
   const providerId = resource?.provider?.id || resource?.provider_id || null
   const isProvider = Boolean(
     user && resource && (providerId === user.id || resource?.provider?.id === user.id)
   )
-
-  const loadReviews = useCallback(async () => {
-    if (!providerId) return
-    setLoadingReviews(true)
-    try {
-      const { data } = await getReviewsForProvider(providerId)
-      setProviderReviews(data || [])
-      if (user && resource?.id) {
-        const { data: rev } = await getUserReviewForResource(user.id, resource.id)
-        setMyReview(rev)
-      }
-    } catch (err) {
-      console.warn('Failed to load reviews:', err)
-    } finally {
-      setLoadingReviews(false)
-    }
-  }, [providerId, user, resource?.id])
-
-  useEffect(() => {
-    loadReviews()
-
-    const handleGlobalReview = (e) => {
-      if (e.detail && (e.detail.providerId === providerId || e.detail.resourceId === resource?.id)) {
-        loadReviews()
-      }
-    }
-    window.addEventListener('reloop-review-submitted', handleGlobalReview)
-    return () => window.removeEventListener('reloop-review-submitted', handleGlobalReview)
-  }, [providerId, resource?.id, loadReviews])
 
   // Keep resource updated if initialResource prop changes
   useEffect(() => {
@@ -282,13 +244,6 @@ export default function ResourceDetailsPage({
     setRequestLoading(false)
   }
 
-  const handleContact = () => {
-    requireAuth(() => {
-      setChatOpen(true)
-      setMessageSent(false)
-    })
-  }
-
   const handleOpenChat = () => {
     requireAuth(() => {
       // If the current user is the provider, the other chat participant is the requester!
@@ -297,15 +252,13 @@ export default function ResourceDetailsPage({
         ? (request?.requester?.full_name || 'Requester')
         : providerName
 
-      if (onOpenChat && resource && targetUserId) {
+      if (onOpenChat && resource) {
         onOpenChat({
           resourceId: resource.id,
-          otherUserId: targetUserId,
-          otherName: targetName,
+          otherUserId: targetUserId || providerId,
+          otherName: targetName || providerName,
           resourceTitle: resource.title,
         })
-      } else {
-        setChatOpen(true)
       }
     })
   }
@@ -897,22 +850,11 @@ export default function ResourceDetailsPage({
               {!isProvider && (
                 <button
                   type="button"
-                  onClick={() => requireAuth(() => setIsRateModalOpen(true))}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100/80 text-amber-800 text-xs font-bold border border-amber-200 transition cursor-pointer"
-                >
-                  <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-                  <span>{myReview ? 'Edit Review' : 'Rate Provider'}</span>
-                </button>
-              )}
-
-              {!isProvider && (
-                <button
-                  type="button"
                   onClick={handleOpenChat}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Message</span>
+                  <span>Chat with Provider</span>
                 </button>
               )}
             </div>
@@ -925,149 +867,6 @@ export default function ResourceDetailsPage({
               <span>
                 <strong>Trust Verified:</strong> {providerName} has maintained consistent 4.5+ star ratings across verified circular exchanges.
               </span>
-            </div>
-          )}
-        </div>
-
-        {/* ================= COMMUNITY REVIEWS & FEEDBACK ================= */}
-        <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100">
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
-                <span>Community Reviews & Ratings ({providerReviews.length})</span>
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Feedback from members who have exchanged resources with {providerName}
-              </p>
-            </div>
-
-            {!isProvider && (
-              <button
-                type="button"
-                onClick={() => requireAuth(() => setIsRateModalOpen(true))}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition cursor-pointer self-start sm:self-auto"
-              >
-                <Star className="w-3.5 h-3.5 fill-emerald-600" />
-                <span>{myReview ? 'Edit Your Review' : 'Write a Review'}</span>
-              </button>
-            )}
-          </div>
-
-          {/* User's Own Review Banner */}
-          {myReview && (
-            <div className="mb-5 p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-amber-900">Your Review for this Resource:</span>
-                  <div className="flex items-center text-amber-500">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        className={`w-3.5 h-3.5 ${s <= myReview.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                {myReview.comment && (
-                  <p className="text-xs text-amber-950/80 italic mt-1 leading-relaxed">
-                    &ldquo;{myReview.comment}&rdquo;
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsRateModalOpen(true)}
-                className="text-xs font-bold text-amber-800 hover:text-amber-900 underline self-start sm:self-auto cursor-pointer"
-              >
-                Edit Review
-              </button>
-            </div>
-          )}
-
-          {/* Review List */}
-          {loadingReviews ? (
-            <div className="space-y-3 py-4">
-              {[1, 2].map((i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-2xl p-4 h-18" />
-              ))}
-            </div>
-          ) : providerReviews.length === 0 ? (
-            <div className="py-8 text-center bg-gray-50 rounded-2xl border border-gray-100 p-6">
-              <Sparkles className="w-7 h-7 text-emerald-500 mx-auto mb-2 opacity-80" />
-              <p className="text-xs sm:text-sm font-bold text-gray-800">No community reviews yet</p>
-              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                Completed an exchange or claimed a resource? Be the first to leave feedback and help build community trust!
-              </p>
-              {!isProvider && (
-                <button
-                  type="button"
-                  onClick={() => requireAuth(() => setIsRateModalOpen(true))}
-                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                >
-                  <Star className="w-3.5 h-3.5 fill-white" />
-                  <span>Leave First Review</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {providerReviews.map((rev) => (
-                <div
-                  key={rev.id}
-                  className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 hover:border-emerald-100 transition"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <img
-                        src={rev.reviewer?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(rev.reviewer?.full_name || 'Reviewer')}`}
-                        alt={rev.reviewer?.full_name || 'Reviewer'}
-                        className="w-8 h-8 rounded-full object-cover border border-emerald-100 shadow-2xs shrink-0"
-                      />
-                      <div>
-                        <p className="text-xs font-bold text-gray-900">
-                          {rev.reviewer?.full_name || 'Community Member'}
-                        </p>
-                        <p className="text-[10px] text-gray-400">
-                          {rev.created_at
-                            ? new Date(rev.created_at).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                            : 'Verified Exchange'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Star Display */}
-                    <div className="flex items-center gap-0.5 text-amber-400 shrink-0">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-3.5 h-3.5 ${
-                            star <= Number(rev.rating)
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'text-gray-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {rev.resource_title && (
-                    <div className="inline-block px-2 py-0.5 mb-1.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
-                      Exchange: {rev.resource_title}
-                    </div>
-                  )}
-
-                  {rev.comment && (
-                    <p className="text-xs text-gray-700 leading-relaxed italic">
-                      &ldquo;{rev.comment}&rdquo;
-                    </p>
-                  )}
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -1161,11 +960,11 @@ export default function ResourceDetailsPage({
 
           {!isProvider && (
             <button
-              onClick={handleContact}
-              className="w-full py-3.5 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 font-bold text-sm transition shadow-2xs cursor-pointer flex items-center justify-center gap-2"
+              onClick={handleOpenChat}
+              className="w-full py-3.5 rounded-2xl border border-gray-200 bg-white hover:bg-emerald-50 text-gray-800 hover:text-emerald-800 font-bold text-sm transition shadow-2xs cursor-pointer flex items-center justify-center gap-2"
             >
               <Mail className="w-4 h-4 text-emerald-600" />
-              <span>{user ? `Contact Provider (${providerName})` : 'Sign in to Contact Provider'}</span>
+              <span>{user ? `Chat with Provider (${providerName})` : 'Sign in to Chat with Provider'}</span>
             </button>
           )}
 
@@ -1181,96 +980,12 @@ export default function ResourceDetailsPage({
           )}
         </div>
 
-        {/* ================= INLINE CHAT MODAL / COMPOSE ================= */}
-        {chatOpen && !messageSent && user && (
-          <div className="mt-6 bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-emerald-600" />
-              <span>Send Message to {providerName}</span>
-            </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                if (!messageContent.trim() || !user) return
-                setMessageSent(true)
-                sendMessage({
-                  senderId: user.id,
-                  receiverId: providerId,
-                  resourceId: resource.id,
-                  content: messageContent.trim(),
-                }).then(({ error: err }) => {
-                  if (err) {
-                    setError(err.message || 'Failed to send message.')
-                    setMessageSent(false)
-                  } else {
-                    setMessageSent(true)
-                    setMessageContent('')
-                  }
-                })
-              }}
-              className="space-y-3"
-            >
-              <textarea
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                rows={3}
-                placeholder="Hi, I am interested in this resource! When can we coordinate?"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-900 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition resize-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setChatOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-semibold text-xs hover:bg-gray-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!messageContent.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 disabled:opacity-60 transition cursor-pointer"
-                >
-                  Send Message
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {messageSent && (
-          <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>Message sent successfully to {providerName}!</span>
-            </div>
-            {!isProvider && (
-              <button
-                type="button"
-                onClick={() => requireAuth(() => setIsRateModalOpen(true))}
-                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs transition cursor-pointer"
-              >
-                Rate Provider
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ================= RATE PROVIDER MODAL ================= */}
-        <RateProviderModal
-          isOpen={isRateModalOpen}
-          onClose={() => setIsRateModalOpen(false)}
-          resource={resource}
-          provider={resource?.provider}
-          onReviewSubmitted={handleReviewSubmitted}
-        />
-
-        {/* ================= PROVIDER PROFILE & REVIEWS MODAL ================= */}
+        {/* ================= PROVIDER PROFILE MODAL ================= */}
         <ProviderProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           providerId={providerId}
           initialProvider={resource?.provider}
-          onOpenRateModal={() => requireAuth(() => setIsRateModalOpen(true))}
           onOpenChat={handleOpenChat}
         />
       </div>

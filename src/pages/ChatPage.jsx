@@ -6,7 +6,10 @@ import {
   markMessagesRead,
   getResourceById,
   getConversations,
+  getUserReviewForResource,
+  getProviderProfile,
 } from '../lib/supabase'
+import RateProviderModal from '../components/RateProviderModal'
 import {
   ArrowLeft,
   MessageCircle,
@@ -16,6 +19,8 @@ import {
   Loader2,
   Check,
   CheckCheck,
+  Star,
+  ShieldCheck,
 } from 'lucide-react'
 import AccountLayout from '../components/AccountLayout'
 
@@ -32,7 +37,38 @@ export default function ChatPage({ setCurrentView, chat, onOpenResourceDetails }
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
 
+  // In-chat Rating Modal & Provider stats states
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false)
+  const [userReview, setUserReview] = useState(null)
+  const [providerStats, setProviderStats] = useState({
+    avg_rating: 4.8,
+    total_reviews: 0,
+    is_verified: false,
+  })
+
   const scrollRef = useRef(null)
+
+  const loadRatingData = async (otherId, resId) => {
+    if (!otherId) return
+    try {
+      const { data: prof } = await getProviderProfile(otherId)
+      if (prof) {
+        setProviderStats({
+          avg_rating: prof.avg_rating || 4.8,
+          total_reviews: prof.total_reviews || 0,
+          is_verified: prof.is_verified,
+          avatar_url: prof.avatar_url,
+          full_name: prof.full_name || otherName,
+        })
+      }
+      if (user && resId) {
+        const { data: rev } = await getUserReviewForResource(user.id, resId)
+        setUserReview(rev)
+      }
+    } catch (e) {
+      console.warn('Rating loading error in chat:', e)
+    }
+  }
 
   // 1. Initial setup and fallback inference if chat was opened without parameters
   useEffect(() => {
@@ -66,6 +102,10 @@ export default function ChatPage({ setCurrentView, chat, onOpenResourceDetails }
         setActiveResourceId(targetResId)
       }
 
+      if (targetOtherId) {
+        loadRatingData(targetOtherId, targetResId)
+      }
+
       if (targetOtherId && user) {
         try {
           setLoading(true)
@@ -95,6 +135,17 @@ export default function ChatPage({ setCurrentView, chat, onOpenResourceDetails }
       mounted = false
     }
   }, [user, chat])
+
+  // Listen for review submissions to keep rating updated live
+  useEffect(() => {
+    const handleReviewSubmitted = (e) => {
+      if (e.detail && (e.detail.providerId === activeOtherUserId || e.detail.resourceId === activeResourceId)) {
+        loadRatingData(activeOtherUserId, activeResourceId)
+      }
+    }
+    window.addEventListener('reloop-review-submitted', handleReviewSubmitted)
+    return () => window.removeEventListener('reloop-review-submitted', handleReviewSubmitted)
+  }, [activeOtherUserId, activeResourceId])
 
   // 2. Mark messages read
   useEffect(() => {
@@ -252,6 +303,62 @@ export default function ChatPage({ setCurrentView, chat, onOpenResourceDetails }
           )}
         </div>
 
+        {/* ================= IN-CHAT PROVIDER RATING WIDGET ================= */}
+        {user && activeOtherUserId && user.id !== activeOtherUserId && (
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white rounded-2xl border border-emerald-200/90 p-3.5 shadow-2xs mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center text-amber-500 shadow-2xs shrink-0">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-gray-900 truncate">
+                    {userReview ? 'Your Service Rating' : `Rate ${otherName} for this service`}
+                  </span>
+                  {providerStats?.is_verified && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                      <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                      <span>Verified Provider</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                  {userReview ? (
+                    <span className="text-emerald-800 font-semibold flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                        <span>{userReview.rating} / 5 Stars</span>
+                      </span>
+                      {userReview.comment && (
+                        <span className="text-gray-500 italic truncate max-w-[180px] hidden sm:inline">
+                          &ldquo;{userReview.comment}&rdquo;
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <span>Provider Overall Rating:</span>
+                      <span className="text-amber-600 font-bold">⭐ {Number(providerStats?.avg_rating || 4.8).toFixed(1)}</span>
+                      <span className="text-gray-400">({providerStats?.total_reviews || 0} reviews)</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsRateModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              <Star className="w-3.5 h-3.5 fill-white" />
+              <span>{userReview ? 'Edit Rating' : 'Rate Provider'}</span>
+            </button>
+          </div>
+        )}
+
         {error && (
           <div className="mb-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -353,6 +460,37 @@ export default function ChatPage({ setCurrentView, chat, onOpenResourceDetails }
           </form>
         </div>
       </div>
+
+      {/* Rate Provider Modal inside Chat */}
+      <RateProviderModal
+        isOpen={isRateModalOpen}
+        onClose={() => setIsRateModalOpen(false)}
+        resource={
+          resource || {
+            id: activeResourceId,
+            title: resourceTitle,
+            provider_id: activeOtherUserId,
+            provider: {
+              id: activeOtherUserId,
+              full_name: otherName,
+              avg_rating: providerStats?.avg_rating,
+              total_reviews: providerStats?.total_reviews,
+              is_verified: providerStats?.is_verified,
+            },
+          }
+        }
+        provider={{
+          id: activeOtherUserId,
+          full_name: otherName,
+          avg_rating: providerStats?.avg_rating,
+          total_reviews: providerStats?.total_reviews,
+          is_verified: providerStats?.is_verified,
+        }}
+        onReviewSubmitted={({ review, newStats }) => {
+          setUserReview(review)
+          if (newStats) setProviderStats((prev) => ({ ...prev, ...newStats }))
+        }}
+      />
     </AccountLayout>
   )
 }
