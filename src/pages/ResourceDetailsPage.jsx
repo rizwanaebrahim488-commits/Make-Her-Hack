@@ -7,12 +7,8 @@ import {
   createRequest,
   getRequestsByRequester,
   updateRequestStatus,
-  sendMessage,
-  getReviewsForProvider,
-  getUserReviewForResource,
 } from '../lib/supabase'
 import ResourceMap from '../components/ResourceMap'
-import RateProviderModal from '../components/RateProviderModal'
 import ProviderProfileModal from '../components/ProviderProfileModal'
 import { awardEcoPoints } from '../lib/ecoPoints'
 import {
@@ -154,24 +150,10 @@ export default function ResourceDetailsPage({
     : (resource?.provider?.member_since || '2023')
 
   const providerAvgRating = Number(resource?.provider?.avg_rating || 4.8).toFixed(1)
-  const providerTotalReviews = Number(resource?.provider?.total_reviews || providerReviews.length || 0)
+  const providerTotalReviews = Number(resource?.provider?.total_reviews || 0)
   const isProviderVerified = Boolean(
     resource?.provider?.is_verified ?? (Number(providerAvgRating) >= 4.5 && providerTotalReviews >= 5)
   )
-
-  const handleReviewSubmitted = ({ review, newStats }) => {
-    setMyReview(review)
-    loadReviews()
-    if (newStats) {
-      setResource((prev) => ({
-        ...prev,
-        provider: {
-          ...(prev?.provider || {}),
-          ...newStats
-        }
-      }))
-    }
-  }
 
   const handleLike = async () => {
     requireAuth(async () => {
